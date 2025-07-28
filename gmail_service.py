@@ -29,22 +29,15 @@ def send_review_request_email(to_email, subject, message_template, customer_name
         # Add body to email
         msg.attach(MIMEText(formatted_message, 'plain'))
         
-        # For production, you would use actual Gmail SMTP with proper credentials
-        # Here we'll log the email instead of actually sending it
-        logger.info(f"""
-        EMAIL WOULD BE SENT:
-        To: {to_email}
-        Subject: {subject}
-        Message: {formatted_message}
-        """)
-        
-        # In a real application, uncomment and configure the following:
-        """
         # Gmail SMTP configuration
         smtp_server = "smtp.gmail.com"
         smtp_port = 587
         gmail_user = os.environ.get('GMAIL_USER')
         gmail_password = os.environ.get('GMAIL_PASSWORD')  # Use app password
+        
+        if not gmail_user or not gmail_password:
+            logger.error("Gmail credentials not configured. Please set GMAIL_USER and GMAIL_PASSWORD environment variables.")
+            raise Exception("Gmail credentials not configured")
         
         # Create SMTP session
         server = smtplib.SMTP(smtp_server, smtp_port)
@@ -55,7 +48,8 @@ def send_review_request_email(to_email, subject, message_template, customer_name
         text = msg.as_string()
         server.sendmail(gmail_user, to_email, text)
         server.quit()
-        """
+        
+        logger.info(f"Email sent successfully to {to_email} with subject: {subject}")
         
         return True
         
@@ -77,14 +71,36 @@ def send_admin_notification(admin_email, customer_name, rating, comment):
         Please log into your dashboard to respond to this review.
         """
         
-        # Log instead of actually sending
-        logger.info(f"""
-        ADMIN NOTIFICATION WOULD BE SENT:
-        To: {admin_email}
-        Subject: {subject}
-        Message: {message}
-        """)
+        # Create message
+        msg = MIMEMultipart()
+        msg['From'] = os.environ.get('GMAIL_USER', 'noreply@example.com')
+        msg['To'] = admin_email
+        msg['Subject'] = subject
         
+        # Add body to email
+        msg.attach(MIMEText(message, 'plain'))
+        
+        # Gmail SMTP configuration
+        smtp_server = "smtp.gmail.com"
+        smtp_port = 587
+        gmail_user = os.environ.get('GMAIL_USER')
+        gmail_password = os.environ.get('GMAIL_PASSWORD')
+        
+        if not gmail_user or not gmail_password:
+            logger.error("Gmail credentials not configured for admin notification")
+            return False
+        
+        # Create SMTP session
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()  # Enable security
+        server.login(gmail_user, gmail_password)
+        
+        # Send email
+        text = msg.as_string()
+        server.sendmail(gmail_user, admin_email, text)
+        server.quit()
+        
+        logger.info(f"Admin notification sent successfully to {admin_email}")
         return True
         
     except Exception as e:

@@ -1,4 +1,5 @@
 import uuid
+import logging
 from datetime import datetime
 from flask import render_template, redirect, url_for, flash, request, abort
 from flask_login import login_user, logout_user, login_required, current_user
@@ -6,8 +7,10 @@ from app import app, db
 from models import User, ReviewTemplate, Customer, Review, ReviewRequest
 from forms import (LoginForm, RegistrationForm, ReviewTemplateForm, CustomerForm, 
                   ReviewForm, AdminResponseForm, SettingsForm, SendReviewRequestForm)
-from gmail_service import send_review_request_email
+from gmail_service import send_review_request_email, send_admin_notification
 from utils import generate_review_link
+
+logger = logging.getLogger(__name__)
 
 @app.route('/')
 def index():
@@ -386,7 +389,19 @@ def public_review(token):
         
         # Smart routing based on rating
         if form.rating.data <= 4:
-            # Low rating - show thank you message and redirect to admin
+            # Low rating - send admin notification and show thank you message
+            try:
+                user = User.query.get(review_request.user_id)
+                customer = Customer.query.get(review_request.customer_id)
+                send_admin_notification(
+                    user.email,
+                    customer.name,
+                    form.rating.data,
+                    form.comment.data or "No comment provided"
+                )
+            except Exception as e:
+                logger.error(f"Failed to send admin notification: {str(e)}")
+            
             flash('Thank you for your feedback! We will contact you shortly to address your concerns.', 'info')
             return render_template('review_submitted.html', 
                                  message='Thank you for your feedback! We will contact you shortly to address your concerns.',
