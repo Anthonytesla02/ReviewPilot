@@ -307,9 +307,8 @@ def send_review_request(id):
         
         return redirect(url_for('customers'))
     
-    return render_template('customer_form.html', form=form, customer=customer, 
-                         title=f'Send Review Request to {customer.name}', 
-                         is_review_request=True)
+    return render_template('review_request_form.html', form=form, customer=customer, 
+                         title=f'Send Review Request to {customer.name}')
 
 @app.route('/reviews')
 @login_required
