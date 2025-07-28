@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Review Automation Platform{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('templates') }}">Templates</a></li>
+                    <li class="breadcrumb-item active">{{ title }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3">{{ title }}</h1>
+        </div>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    {% if is_review_request %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Sending review request to {{ customer.name }}</strong><br>
+                            <small>{{ customer.email }}</small>
+                        </div>
+                    {% endif %}
+                    
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        {% if not is_review_request %}
+                            <div class="mb-3">
+                                {{ form.name.label(class="form-label") }}
+                                {{ form.name(class="form-control") }}
+                                {% if form.name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.name.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        
+                        {% if is_review_request %}
+                            <div class="mb-3">
+                                {{ form.template_id.label(class="form-label") }}
+                                {{ form.template_id(class="form-select") }}
+                                {% if form.template_id.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.template_id.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <div class="mb-3">
+                                {{ form.subject.label(class="form-label") }}
+                                {{ form.subject(class="form-control") }}
+                                {% if form.subject.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.subject.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.message.label(class="form-label") }}
+                                <div class="form-text mb-2">
+                                    <strong>Available Variables:</strong>
+                                    <code>{customer_name}</code>,
+                                    <code>{business_name}</code>,
+                                    <code>{review_link}</code>
+                                </div>
+                                {{ form.message(class="form-control") }}
+                                {% if form.message.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.message.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-4">
+                                <div class="form-check">
+                                    {{ form.is_default(class="form-check-input") }}
+                                    {{ form.is_default.label(class="form-check-label") }}
+                                </div>
+                                <div class="form-text">
+                                    Setting this as default will unset any other default template.
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% if is_review_request %}{{ url_for('customers') }}{% else %}{{ url_for('templates') }}{% endif %}" 
+                               class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancel
+                            </a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            {% if not is_review_request %}
+                <!-- Template Preview -->
+                <div class="card border-0 shadow-sm mt-4">
+                    <div class="card-header bg-transparent">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-eye me-2"></i>Email Preview
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="bg-light rounded p-3">
+                            <h6 class="mb-2">Subject:</h6>
+                            <p class="mb-3" id="preview-subject">{{ form.subject.data or 'Enter subject above...' }}</p>
+                            
+                            <h6 class="mb-2">Message:</h6>
+                            <div id="preview-message" class="text-muted" style="white-space: pre-line;">
+                                {{ form.message.data or 'Enter message above...' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if not is_review_request %}
+<script>
+// Live preview functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const subjectInput = document.getElementById('subject');
+    const messageInput = document.getElementById('message');
+    const previewSubject = document.getElementById('preview-subject');
+    const previewMessage = document.getElementById('preview-message');
+    
+    function updatePreview() {
+        previewSubject.textContent = subjectInput.value || 'Enter subject above...';
+        
+        let messageText = messageInput.value || 'Enter message above...';
+        // Show template variables as placeholders
+        messageText = messageText
+            .replace(/\{customer_name\}/g, '[Customer Name]')
+            .replace(/\{business_name\}/g, '[Business Name]')
+            .replace(/\{review_link\}/g, '[Review Link]');
+        
+        previewMessage.textContent = messageText;
+    }
+    
+    if (subjectInput && messageInput) {
+        subjectInput.addEventListener('input', updatePreview);
+        messageInput.addEventListener('input', updatePreview);
+        updatePreview(); // Initial update
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

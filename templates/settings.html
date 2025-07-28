@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Review Automation Platform{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">Settings</h1>
+            <p class="text-muted">Manage your account and business information.</p>
+        </div>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Business Settings -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-building me-2"></i>Business Information
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.business_name.label(class="form-label") }}
+                            {{ form.business_name(class="form-control") }}
+                            <div class="form-text">This name will appear in your review request emails.</div>
+                            {% if form.business_name.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.business_name.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.google_business_url.label(class="form-label") }}
+                            {{ form.google_business_url(class="form-control", placeholder="https://goo.gl/maps/your-business-url") }}
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Customers with 5-star reviews will be redirected here to leave a Google review.
+                            </div>
+                            {% if form.google_business_url.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.google_business_url.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            {{ form.email.label(class="form-label") }}
+                            {{ form.email(class="form-control") }}
+                            <div class="form-text">Your account email address.</div>
+                            {% if form.email.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.email.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <div></div>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Account Information -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-transparent">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-user me-2"></i>Account Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Username</label>
+                                <div class="fw-bold">{{ current_user.username }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Member Since</label>
+                                <div class="fw-bold">{{ current_user.created_at.strftime('%B %d, %Y') }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Email Configuration -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-transparent">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-envelope me-2"></i>Email Configuration
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Gmail Integration:</strong> 
+                        Currently, review request emails are logged for development purposes. 
+                        In production, configure Gmail API credentials to send actual emails.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card bg-light border-0">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-cog fa-2x text-muted mb-3"></i>
+                                    <h6>Email Status</h6>
+                                    <span class="badge bg-warning">Development Mode</span>
+                                    <p class="text-muted small mt-2">
+                                        Emails are logged instead of sent
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light border-0">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-chart-line fa-2x text-muted mb-3"></i>
+                                    <h6>Templates</h6>
+                                    <span class="badge bg-success">{{ current_user.templates|length }} Active</span>
+                                    <p class="text-muted small mt-2">
+                                        <a href="{{ url_for('templates') }}" class="text-decoration-none">Manage templates</a>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-transparent">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Quick Stats
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                                <h5 class="mb-0">{{ current_user.customers|length }}</h5>
+                                <small class="text-muted">Customers</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <i class="fas fa-star fa-2x text-warning mb-2"></i>
+                                <h5 class="mb-0">{{ current_user.reviews|length }}</h5>
+                                <small class="text-muted">Reviews</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <i class="fas fa-envelope fa-2x text-success mb-2"></i>
+                                <h5 class="mb-0">{{ current_user.templates|length }}</h5>
+                                <small class="text-muted">Templates</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                                <h5 class="mb-0">{{ current_user.reviews|selectattr('status', 'equalto', 'pending')|list|length }}</h5>
+                                <small class="text-muted">Pending</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('analytics') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-chart-line me-2"></i>View Detailed Analytics
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

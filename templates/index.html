@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - Review Automation Platform{% endblock %}
+
+{% block content %}
+<div class="hero-section bg-gradient text-light py-5">
+    <div class="container">
+        <div class="row align-items-center min-vh-100">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-4">
+                    Automate Your Business Reviews with AI
+                </h1>
+                <p class="lead mb-4">
+                    Streamline your customer feedback process with our intelligent review automation platform. 
+                    Send personalized review requests, route feedback smartly, and grow your business reputation.
+                </p>
+                
+                <div class="d-grid gap-2 d-md-flex">
+                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg me-2">
+                        <i class="fas fa-rocket me-2"></i>Get Started Free
+                    </a>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                    </a>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="text-center">
+                    <div class="feature-icon-large mb-4">
+                        <i class="fas fa-star fa-10x text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row text-center mb-5">
+        <div class="col-12">
+            <h2 class="display-5 mb-3">Why Choose ReviewPro?</h2>
+            <p class="lead text-muted">Everything you need to manage and grow your business reviews</p>
+        </div>
+    </div>
+    
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-magic fa-3x text-primary"></i>
+                    </div>
+                    <h5 class="card-title">Smart Routing</h5>
+                    <p class="card-text text-muted">
+                        Automatically route low ratings to your admin panel and high ratings to Google Business.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-envelope fa-3x text-success"></i>
+                    </div>
+                    <h5 class="card-title">Email Automation</h5>
+                    <p class="card-text text-muted">
+                        Send personalized review requests automatically through Gmail integration.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-chart-line fa-3x text-info"></i>
+                    </div>
+                    <h5 class="card-title">Analytics & Insights</h5>
+                    <p class="card-text text-muted">
+                        Track your review performance with detailed analytics and reporting.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row g-4 mt-4">
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-users fa-3x text-warning"></i>
+                    </div>
+                    <h5 class="card-title">Customer Management</h5>
+                    <p class="card-text text-muted">
+                        Organize and track all your customers and their appointment history.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-edit fa-3x text-danger"></i>
+                    </div>
+                    <h5 class="card-title">Custom Templates</h5>
+                    <p class="card-text text-muted">
+                        Create and customize email templates that match your brand voice.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-shield-alt fa-3x text-secondary"></i>
+                    </div>
+                    <h5 class="card-title">Secure & Reliable</h5>
+                    <p class="card-text text-muted">
+                        Enterprise-grade security with reliable uptime and data protection.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bg-light py-5 mt-5">
+    <div class="container text-center">
+        <h3 class="mb-4">Ready to Transform Your Review Process?</h3>
+        <p class="lead mb-4">Join thousands of businesses already using ReviewPro to automate their customer feedback.</p>
+        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">
+            <i class="fas fa-rocket me-2"></i>Start Your Free Trial
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Review from {{ review.customer.name }} - Review Automation Platform{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('reviews') }}">Reviews</a></li>
+                    <li class="breadcrumb-item active">{{ review.customer.name }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3">Review from {{ review.customer.name }}</h1>
+        </div>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Review Details -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Customer Information</h5>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                     style="width: 50px; height: 50px;">
+                                    <span class="text-white fw-bold fs-4">{{ review.customer.name[0].upper() }}</span>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">{{ review.customer.name }}</h6>
+                                    <small class="text-muted">{{ review.customer.email }}</small>
+                                    {% if review.customer.phone %}
+                                        <br><small class="text-muted">{{ review.customer.phone }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Review Details</h5>
+                            <div class="mb-2">
+                                <strong>Rating:</strong>
+                                <div class="rating-stars d-inline-block ms-2">
+                                    {% for i in range(1, 6) %}
+                                        <i class="fas fa-star {% if i <= review.rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                                    {% endfor %}
+                                    <span class="ms-2">({{ review.rating }}/5)</span>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Status:</strong>
+                                <span class="badge bg-{{ 'warning' if review.status == 'pending' else 'success' if review.status == 'responded' else 'primary' }} ms-2">
+                                    {{ review.status.replace('_', ' ').title() }}
+                                </span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Submitted:</strong>
+                                <span class="ms-2">{{ review.created_at.strftime('%B %d, %Y at %I:%M %p') }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if review.comment %}
+                        <div class="mb-4">
+                            <h5 class="mb-3">Customer Comment</h5>
+                            <div class="p-3 bg-light rounded">
+                                <p class="mb-0" style="white-space: pre-line;">{{ review.comment }}</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Rating-based Actions -->
+                    {% if review.rating <= 4 %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Low Rating Alert:</strong> This customer gave {{ review.rating }} star{{ 's' if review.rating != 1 else '' }}. 
+                            Consider responding to address their concerns.
+                        </div>
+                    {% else %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-thumbs-up me-2"></i>
+                            <strong>Great Review:</strong> This customer gave {{ review.rating }} star{{ 's' if review.rating != 1 else '' }}! 
+                            {% if current_user.google_business_url %}
+                                They were automatically directed to leave a review on your Google Business profile.
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Admin Response Section -->
+            {% if review.rating <= 4 %}
+                <div class="card border-0 shadow-sm mt-4">
+                    <div class="card-header bg-transparent">
+                        <h6 class="card-title mb-0">
+                            {% if review.admin_response %}
+                                <i class="fas fa-reply me-2"></i>Your Response
+                            {% else %}
+                                <i class="fas fa-edit me-2"></i>Respond to Review
+                            {% endif %}
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        {% if review.admin_response %}
+                            <div class="p-3 bg-light rounded mb-3">
+                                <p class="mb-2" style="white-space: pre-line;">{{ review.admin_response }}</p>
+                                <small class="text-muted">
+                                    Responded on {{ review.response_date.strftime('%B %d, %Y at %I:%M %p') }}
+                                </small>
+                            </div>
+                            
+                            <form method="POST" action="{{ url_for('respond_to_review', id=review.id) }}">
+                                {{ form.hidden_tag() }}
+                                <div class="mb-3">
+                                    <label class="form-label">Update Response</label>
+                                    {{ form.admin_response(class="form-control") }}
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Update Response
+                                </button>
+                            </form>
+                        {% else %}
+                            <form method="POST" action="{{ url_for('respond_to_review', id=review.id) }}">
+                                {{ form.hidden_tag() }}
+                                <div class="mb-3">
+                                    {{ form.admin_response.label(class="form-label") }}
+                                    {{ form.admin_response(class="form-control", placeholder="Write a thoughtful response to address the customer's concerns...") }}
+                                    {% if form.admin_response.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.admin_response.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-reply me-2"></i>Send Response
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Customer History -->
+            {% if review.customer.reviews|length > 1 %}
+                <div class="card border-0 shadow-sm mt-4">
+                    <div class="card-header bg-transparent">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-history me-2"></i>Customer Review History
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        {% for other_review in review.customer.reviews %}
+                            {% if other_review.id != review.id %}
+                                <div class="d-flex align-items-start mb-3 {% if not loop.last %}border-bottom pb-3{% endif %}">
+                                    <div class="flex-shrink-0 me-3">
+                                        <div class="rating-stars">
+                                            {% for i in range(1, 6) %}
+                                                <i class="fas fa-star {% if i <= other_review.rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        {% if other_review.comment %}
+                                            <p class="mb-2">{{ other_review.comment }}</p>
+                                        {% endif %}
+                                        <small class="text-muted">
+                                            {{ other_review.created_at.strftime('%B %d, %Y') }}
+                                            - {{ other_review.status.title() }}
+                                        </small>
+                                    </div>
+                                    <div class="flex-shrink-0">
+                                        <a href="{{ url_for('review_detail', id=other_review.id) }}" class="btn btn-sm btn-outline-primary">
+                                            View
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Actions -->
+            <div class="text-center mt-4">
+                <a href="{{ url_for('reviews') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Reviews
+                </a>
+                <a href="{{ url_for('edit_customer', id=review.customer.id) }}" class="btn btn-outline-primary ms-2">
+                    <i class="fas fa-user-edit me-2"></i>Edit Customer
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

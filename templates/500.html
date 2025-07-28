@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Server Error - Review Automation Platform{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center min-vh-100 align-items-center">
+        <div class="col-md-6 text-center">
+            <div class="mb-4">
+                <i class="fas fa-exclamation-triangle fa-5x text-danger opacity-75"></i>
+            </div>
+            
+            <h1 class="display-4 mb-3">500</h1>
+            <h2 class="h4 mb-4">Internal Server Error</h2>
+            
+            <p class="lead text-muted mb-4">
+                Something went wrong on our end. We're working to fix this issue.
+            </p>
+            
+            <div class="alert alert-info text-start mb-4">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>What you can do:</strong>
+                <ul class="mb-0 mt-2">
+                    <li>Try refreshing the page</li>
+                    <li>Go back to the previous page</li>
+                    <li>Visit our homepage and try again</li>
+                    <li>Contact support if the problem persists</li>
+                </ul>
+            </div>
+            
+            <div class="d-flex justify-content-center gap-3 mb-4">
+                <button onclick="window.location.reload()" class="btn btn-primary">
+                    <i class="fas fa-redo me-2"></i>Refresh Page
+                </button>
+                
+                <button onclick="window.history.back()" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Go Back
+                </button>
+                
+                <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-home me-2"></i>Homepage
+                </a>
+            </div>
+            
+            {% if current_user.is_authenticated %}
+                <hr class="my-4">
+                
+                <div class="row g-2">
+                    <div class="col-6 col-md-3">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm w-100">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <a href="{{ url_for('customers') }}" class="btn btn-outline-secondary btn-sm w-100">
+                            <i class="fas fa-users me-1"></i>Customers
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <a href="{{ url_for('reviews') }}" class="btn btn-outline-secondary btn-sm w-100">
+                            <i class="fas fa-star me-1"></i>Reviews
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <a href="{{ url_for('settings') }}" class="btn btn-outline-secondary btn-sm w-100">
+                            <i class="fas fa-cog me-1"></i>Settings
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <div class="mt-5">
+                <small class="text-muted">
+                    Error ID: {{ request.args.get('error_id', 'N/A') }}<br>
+                    Timestamp: {{ moment().format('YYYY-MM-DD HH:mm:ss') }}
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

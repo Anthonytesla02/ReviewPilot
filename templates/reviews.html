@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Reviews - Review Automation Platform{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-sm-6">
+            <h1 class="h3 mb-3">Reviews</h1>
+            <p class="text-muted">Manage and respond to customer reviews.</p>
+        </div>
+        <div class="col-sm-6 text-sm-end">
+            <!-- Filter Dropdown -->
+            <div class="dropdown d-inline-block">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-filter me-2"></i>
+                    Filter: {{ status_filter.title() if status_filter != 'all' else 'All Reviews' }}
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item {% if status_filter == 'all' %}active{% endif %}" 
+                           href="{{ url_for('reviews', status='all') }}">All Reviews</a></li>
+                    <li><a class="dropdown-item {% if status_filter == 'pending' %}active{% endif %}" 
+                           href="{{ url_for('reviews', status='pending') }}">Pending</a></li>
+                    <li><a class="dropdown-item {% if status_filter == 'responded' %}active{% endif %}" 
+                           href="{{ url_for('reviews', status='responded') }}">Responded</a></li>
+                    <li><a class="dropdown-item {% if status_filter == 'forwarded_to_google' %}active{% endif %}" 
+                           href="{{ url_for('reviews', status='forwarded_to_google') }}">Forwarded to Google</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reviews List -->
+    {% if reviews.items %}
+        <div class="row g-4">
+            {% for review in reviews.items %}
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h5 class="card-title mb-1">{{ review.customer.name }}</h5>
+                                    <div class="rating-stars mb-2">
+                                        {% for i in range(1, 6) %}
+                                            <i class="fas fa-star {% if i <= review.rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                                        {% endfor %}
+                                        <span class="ms-2 text-muted small">({{ review.rating }}/5)</span>
+                                    </div>
+                                </div>
+                                <span class="badge bg-{{ 'warning' if review.status == 'pending' else 'success' if review.status == 'responded' else 'primary' }}">
+                                    {{ review.status.replace('_', ' ').title() }}
+                                </span>
+                            </div>
+                            
+                            {% if review.comment %}
+                                <div class="mb-3">
+                                    <p class="text-muted mb-2">{{ review.comment }}</p>
+                                </div>
+                            {% endif %}
+                            
+                            <div class="row text-center text-muted small border-top pt-3">
+                                <div class="col-6">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    {{ review.created_at.strftime('%b %d, %Y') }}
+                                </div>
+                                <div class="col-6">
+                                    <i class="fas fa-envelope me-1"></i>
+                                    {{ review.customer.email }}
+                                </div>
+                            </div>
+                            
+                            {% if review.admin_response %}
+                                <div class="mt-3 p-3 bg-light rounded">
+                                    <h6 class="small text-muted mb-2">Your Response:</h6>
+                                    <p class="small mb-1">{{ review.admin_response }}</p>
+                                    <small class="text-muted">
+                                        Responded on {{ review.response_date.strftime('%b %d, %Y') }}
+                                    </small>
+                                </div>
+                            {% endif %}
+                            
+                            <div class="mt-3 d-flex justify-content-between">
+                                <div>
+                                    {% if review.rating <= 4 and review.status == 'pending' %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>Needs Attention
+                                        </span>
+                                    {% elif review.rating >= 5 %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-thumbs-up me-1"></i>Happy Customer
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <a href="{{ url_for('review_detail', id=review.id) }}" class="btn btn-sm btn-primary">
+                                    {% if review.status == 'pending' and review.rating <= 4 %}
+                                        <i class="fas fa-reply me-1"></i>Respond
+                                    {% else %}
+                                        <i class="fas fa-eye me-1"></i>View
+                                    {% endif %}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if reviews.pages > 1 %}
+            <nav aria-label="Review pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if reviews.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('reviews', page=reviews.prev_num, status=status_filter) }}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for page_num in reviews.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != reviews.page %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('reviews', page=page_num, status=status_filter) }}">{{ page_num }}</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">…</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if reviews.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('reviews', page=reviews.next_num, status=status_filter) }}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-star fa-5x text-muted opacity-50"></i>
+            </div>
+            <h4 class="text-muted">
+                {% if status_filter == 'all' %}
+                    No Reviews Yet
+                {% else %}
+                    No {{ status_filter.title() }} Reviews
+                {% endif %}
+            </h4>
+            <p class="text-muted mb-4">
+                {% if status_filter == 'all' %}
+                    Reviews will appear here once customers start submitting them.
+                {% else %}
+                    No reviews found with "{{ status_filter }}" status.
+                {% endif %}
+            </p>
+            {% if status_filter != 'all' %}
+                <a href="{{ url_for('reviews', status='all') }}" class="btn btn-primary">
+                    <i class="fas fa-eye me-2"></i>View All Reviews
+                </a>
+            {% else %}
+                <a href="{{ url_for('customers') }}" class="btn btn-primary">
+                    <i class="fas fa-users me-2"></i>Manage Customers
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

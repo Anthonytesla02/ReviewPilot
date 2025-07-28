@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Email Templates - Review Automation Platform{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-sm-6">
+            <h1 class="h3 mb-3">Email Templates</h1>
+            <p class="text-muted">Create and manage your review request email templates.</p>
+        </div>
+        <div class="col-sm-6 text-sm-end">
+            <a href="{{ url_for('new_template') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>New Template
+            </a>
+        </div>
+    </div>
+    
+    <!-- Templates List -->
+    {% if templates %}
+        <div class="row g-4">
+            {% for template in templates %}
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h5 class="card-title mb-1">{{ template.name }}</h5>
+                                    {% if template.is_default %}
+                                        <span class="badge bg-primary">Default</span>
+                                    {% endif %}
+                                    {% if not template.is_active %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </div>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                            type="button" data-bs-toggle="dropdown">
+                                        Actions
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item" href="{{ url_for('edit_template', id=template.id) }}">
+                                                <i class="fas fa-edit me-2"></i>Edit
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item text-danger" 
+                                                    onclick="confirmDelete('{{ template.id }}', '{{ template.name }}')">
+                                                <i class="fas fa-trash me-2"></i>Delete
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6 class="text-muted small mb-1">Subject:</h6>
+                                <p class="mb-2">{{ template.subject }}</p>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6 class="text-muted small mb-1">Message Preview:</h6>
+                                <p class="text-muted small">
+                                    {{ template.message[:150] }}{% if template.message|length > 150 %}...{% endif %}
+                                </p>
+                            </div>
+                            
+                            <div class="row text-center border-top pt-3">
+                                <div class="col-6">
+                                    <small class="text-muted">Created</small><br>
+                                    <small>{{ template.created_at.strftime('%b %d, %Y') }}</small>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Updated</small><br>
+                                    <small>{{ template.updated_at.strftime('%b %d, %Y') }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-envelope fa-5x text-muted opacity-50"></i>
+            </div>
+            <h4 class="text-muted">No Email Templates</h4>
+            <p class="text-muted mb-4">
+                Create your first email template to start sending review requests to your customers.
+            </p>
+            <a href="{{ url_for('new_template') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Create Your First Template
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the template "<span id="templateName"></span>"?</p>
+                <p class="text-muted small">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete Template</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmDelete(templateId, templateName) {
+    document.getElementById('templateName').textContent = templateName;
+    document.getElementById('deleteForm').action = `/templates/${templateId}/delete`;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
+{% endblock %}

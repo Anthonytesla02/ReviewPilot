@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - Review Automation Platform{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">Analytics & Reports</h1>
+            <p class="text-muted">Track your review performance and customer feedback trends.</p>
+        </div>
+    </div>
+    
+    <!-- Key Metrics -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                    <h3 class="mb-1">{{ total_customers }}</h3>
+                    <p class="text-muted mb-0">Total Customers</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-star fa-3x text-warning mb-3"></i>
+                    <h3 class="mb-1">{{ total_reviews }}</h3>
+                    <p class="text-muted mb-0">Total Reviews</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-3x text-success mb-3"></i>
+                    <h3 class="mb-1">{{ avg_rating }}</h3>
+                    <p class="text-muted mb-0">Average Rating</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-percentage fa-3x text-info mb-3"></i>
+                    <h3 class="mb-1">
+                        {% if total_reviews > 0 %}
+                            {{ ((rating_counts[4] + rating_counts[5]) / total_reviews * 100)|round|int }}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </h3>
+                    <p class="text-muted mb-0">Positive Reviews</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row -->
+    <div class="row g-4 mb-5">
+        <!-- Rating Distribution -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>Rating Distribution
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if total_reviews > 0 %}
+                        <canvas id="ratingChart" width="400" height="300"></canvas>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-chart-pie fa-3x text-muted opacity-50 mb-3"></i>
+                            <p class="text-muted">No review data available yet</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Monthly Trends -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i>Monthly Review Trends
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if monthly_reviews %}
+                        <canvas id="trendChart" width="400" height="300"></canvas>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-chart-line fa-3x text-muted opacity-50 mb-3"></i>
+                            <p class="text-muted">No monthly data available yet</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Detailed Breakdown -->
+    <div class="row g-4">
+        <!-- Rating Breakdown -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-star me-2"></i>Rating Breakdown
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% for rating in range(5, 0, -1) %}
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="flex-shrink-0" style="width: 80px;">
+                                <div class="rating-stars">
+                                    {% for i in range(1, 6) %}
+                                        <i class="fas fa-star {% if i <= rating %}text-warning{% else %}text-muted{% endif %} small"></i>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 mx-3">
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar bg-{{ 'success' if rating >= 4 else 'warning' if rating >= 3 else 'danger' }}" 
+                                         role="progressbar" 
+                                         style="width: {% if total_reviews > 0 %}{{ (rating_counts[rating] / total_reviews * 100)|round }}{% else %}0{% endif %}%">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0" style="width: 60px;">
+                                <span class="fw-bold">{{ rating_counts[rating] }}</span>
+                                <small class="text-muted">
+                                    ({% if total_reviews > 0 %}{{ (rating_counts[rating] / total_reviews * 100)|round }}{% else %}0{% endif %}%)
+                                </small>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Review Status -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-tasks me-2"></i>Review Status Overview
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% set pending_count = current_user.reviews|selectattr('status', 'equalto', 'pending')|list|length %}
+                    {% set responded_count = current_user.reviews|selectattr('status', 'equalto', 'responded')|list|length %}
+                    {% set forwarded_count = current_user.reviews|selectattr('status', 'equalto', 'forwarded_to_google')|list|length %}
+                    
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="p-3">
+                                <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                                <h4 class="mb-1">{{ pending_count }}</h4>
+                                <small class="text-muted">Pending</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-3">
+                                <i class="fas fa-reply fa-2x text-success mb-2"></i>
+                                <h4 class="mb-1">{{ responded_count }}</h4>
+                                <small class="text-muted">Responded</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-3">
+                                <i class="fas fa-external-link-alt fa-2x text-primary mb-2"></i>
+                                <h4 class="mb-1">{{ forwarded_count }}</h4>
+                                <small class="text-muted">Forwarded</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="text-center">
+                        <h6 class="text-muted mb-3">Quick Actions</h6>
+                        <div class="d-grid gap-2">
+                            {% if pending_count > 0 %}
+                                <a href="{{ url_for('reviews', status='pending') }}" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    Review {{ pending_count }} Pending Review{{ 's' if pending_count != 1 else '' }}
+                                </a>
+                            {% endif %}
+                            <a href="{{ url_for('customers') }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-users me-2"></i>Manage Customers
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Customer Insights -->
+    {% if current_user.customers|length > 0 %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>Customer Insights
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="text-center p-3">
+                                <i class="fas fa-user-check fa-2x text-success mb-3"></i>
+                                <h5>{{ current_user.customers|selectattr('review_requested', 'equalto', True)|list|length }}</h5>
+                                <p class="text-muted mb-0">Customers Contacted</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3">
+                                <i class="fas fa-percentage fa-2x text-info mb-3"></i>
+                                <h5>
+                                    {% set contacted = current_user.customers|selectattr('review_requested', 'equalto', True)|list|length %}
+                                    {% if contacted > 0 %}
+                                        {{ (current_user.reviews|length / contacted * 100)|round|int }}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </h5>
+                                <p class="text-muted mb-0">Response Rate</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3">
+                                <i class="fas fa-envelope fa-2x text-primary mb-3"></i>
+                                <h5>{{ current_user.customers|selectattr('review_requested', 'equalto', False)|list|length }}</h5>
+                                <p class="text-muted mb-0">Pending Outreach</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Rating Distribution Chart
+{% if total_reviews > 0 %}
+const ratingCtx = document.getElementById('ratingChart').getContext('2d');
+new Chart(ratingCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['1 Star', '2 Stars', '3 Stars', '4 Stars', '5 Stars'],
+        datasets: [{
+            data: [{{ rating_counts[1] }}, {{ rating_counts[2] }}, {{ rating_counts[3] }}, {{ rating_counts[4] }}, {{ rating_counts[5] }}],
+            backgroundColor: [
+                '#dc3545',
+                '#fd7e14',
+                '#ffc107',
+                '#20c997',
+                '#198754'
+            ],
+            borderWidth: 2,
+            borderColor: 'var(--bs-body-bg)'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 20,
+                    usePointStyle: true,
+                    color: 'var(--bs-body-color)'
+                }
+            }
+        }
+    }
+});
+{% endif %}
+
+// Monthly Trends Chart
+{% if monthly_reviews %}
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const monthlyData = Array(12).fill(0);
+
+{% for month_data in monthly_reviews %}
+monthlyData[{{ month_data.month - 1 }}] = {{ month_data.count }};
+{% endfor %}
+
+new Chart(trendCtx, {
+    type: 'line',
+    data: {
+        labels: monthNames,
+        datasets: [{
+            label: 'Reviews',
+            data: monthlyData,
+            borderColor: '#0d6efd',
+            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1,
+                    color: 'var(--bs-body-color)'
+                },
+                grid: {
+                    color: 'var(--bs-border-color)'
+                }
+            },
+            x: {
+                ticks: {
+                    color: 'var(--bs-body-color)'
+                },
+                grid: {
+                    color: 'var(--bs-border-color)'
+                }
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}
