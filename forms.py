@@ -54,3 +54,20 @@ class SendReviewRequestForm(FlaskForm):
     customer_id = HiddenField('Customer ID', validators=[DataRequired()])
     template_id = SelectField('Review Template', coerce=int, validators=[DataRequired()])
     submit = SubmitField('Send Review Request')
+
+class DetailedFeedbackForm(FlaskForm):
+    # Issues that customers can select
+    service_quality = BooleanField('Service Quality')
+    staff_behavior = BooleanField('Staff Behavior')
+    cleanliness = BooleanField('Cleanliness')
+    wait_time = BooleanField('Wait Time')
+    pricing = BooleanField('Pricing')
+    communication = BooleanField('Communication')
+    other = BooleanField('Other')
+    
+    # Detailed feedback
+    what_went_wrong = TextAreaField('What specifically went wrong?', validators=[Optional()], render_kw={"rows": 4})
+    suggestions = TextAreaField('How can we improve?', validators=[Optional()], render_kw={"rows": 4})
+    contact_me = BooleanField('I would like someone to contact me about this')
+    
+    submit = SubmitField('Submit Feedback')

@@ -6,7 +6,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from app import app, db
 from models import User, ReviewTemplate, Customer, Review, ReviewRequest
 from forms import (LoginForm, RegistrationForm, ReviewTemplateForm, CustomerForm, 
-                  ReviewForm, AdminResponseForm, SettingsForm, SendReviewRequestForm)
+                  ReviewForm, AdminResponseForm, SettingsForm, SendReviewRequestForm, DetailedFeedbackForm)
 from gmail_service import send_review_request_email, send_admin_notification
 from utils import generate_review_link
 
@@ -388,8 +388,11 @@ def public_review(token):
         db.session.commit()
         
         # Smart routing based on rating
-        if form.rating.data <= 4:
-            # Low rating - send admin notification and show thank you message
+        if form.rating.data <= 3:
+            # Very low rating (1-3 stars) - redirect to detailed feedback form
+            return redirect(url_for('detailed_feedback', token=token, rating=form.rating.data, comment=form.comment.data or ''))
+        elif form.rating.data == 4:
+            # 4 stars - send admin notification but show thank you message
             try:
                 user = User.query.get(review_request.user_id)
                 customer = Customer.query.get(review_request.customer_id)
@@ -397,32 +400,103 @@ def public_review(token):
                     user.email,
                     customer.name,
                     form.rating.data,
-                    form.comment.data or "No comment provided"
+                    form.comment.data or "No additional comment provided"
                 )
             except Exception as e:
                 logger.error(f"Failed to send admin notification: {str(e)}")
             
-            flash('Thank you for your feedback! We will contact you shortly to address your concerns.', 'info')
             return render_template('review_submitted.html', 
-                                 message='Thank you for your feedback! We will contact you shortly to address your concerns.',
-                                 is_low_rating=True)
+                                 message='Thank you for your feedback! We appreciate your business and will continue to improve.',
+                                 is_low_rating=False)
         else:
-            # High rating - redirect to Google Business page
+            # 5 stars - redirect to Google Business page
             user = User.query.get(review_request.user_id)
             if user.google_business_url:
                 return render_template('review_submitted.html',
-                                     message='Thank you for your positive feedback! Please consider leaving a review on Google as well.',
+                                     message='Thank you for your excellent feedback! Please consider sharing your experience on Google as well.',
                                      google_url=user.google_business_url,
-                                     is_low_rating=False)
+                                     is_low_rating=False,
+                                     auto_redirect=True)
             else:
                 return render_template('review_submitted.html',
-                                     message='Thank you for your positive feedback!',
+                                     message='Thank you for your excellent feedback!',
                                      is_low_rating=False)
+    
+    customer = Customer.query.get(review_request.customer_id)
+    business = User.query.get(review_request.user_id)
     
     return render_template('review_form.html', form=form, 
                          review_request=review_request,
-                         customer=review_request.customer,
-                         business=User.query.get(review_request.user_id))
+                         customer=customer,
+                         business=business)
+
+@app.route('/feedback/<token>', methods=['GET', 'POST'])
+def detailed_feedback(token):
+    # Handle detailed feedback for low ratings
+    review_request = ReviewRequest.query.filter_by(unique_token=token).first_or_404()
+    
+    rating = request.args.get('rating', type=int)
+    comment = request.args.get('comment', '')
+    
+    form = DetailedFeedbackForm()
+    if form.validate_on_submit():
+        # Create a detailed feedback record or update the existing review
+        review = Review.query.filter_by(customer_id=review_request.customer_id, rating=rating).first()
+        if review:
+            # Update the review with detailed feedback
+            issues = []
+            if form.service_quality.data: issues.append('Service Quality')
+            if form.staff_behavior.data: issues.append('Staff Behavior')
+            if form.cleanliness.data: issues.append('Cleanliness')
+            if form.wait_time.data: issues.append('Wait Time')
+            if form.pricing.data: issues.append('Pricing')
+            if form.communication.data: issues.append('Communication')
+            if form.other.data: issues.append('Other')
+            
+            detailed_comment = f"""
+Original Comment: {comment}
+
+Issues Identified: {', '.join(issues) if issues else 'None specified'}
+
+What went wrong: {form.what_went_wrong.data or 'Not specified'}
+
+Suggestions for improvement: {form.suggestions.data or 'Not specified'}
+
+Contact requested: {'Yes' if form.contact_me.data else 'No'}
+            """
+            
+            review.comment = detailed_comment.strip()
+            review.status = 'needs_response' if form.contact_me.data else 'pending'
+            
+            db.session.commit()
+            
+            # Send detailed admin notification
+            try:
+                user = User.query.get(review_request.user_id)
+                customer = Customer.query.get(review_request.customer_id)
+                send_admin_notification(
+                    user.email,
+                    customer.name,
+                    rating,
+                    detailed_comment
+                )
+            except Exception as e:
+                logger.error(f"Failed to send detailed admin notification: {str(e)}")
+        
+        return render_template('review_submitted.html',
+                             message='Thank you for the detailed feedback. We take your concerns seriously and will work to address them.',
+                             is_low_rating=True,
+                             contact_requested=form.contact_me.data)
+    
+    customer = Customer.query.get(review_request.customer_id)
+    business = User.query.get(review_request.user_id)
+    
+    return render_template('detailed_feedback.html', 
+                         form=form, 
+                         rating=rating,
+                         comment=comment,
+                         customer=customer,
+                         business=business)
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required

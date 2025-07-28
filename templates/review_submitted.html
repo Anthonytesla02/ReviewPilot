@@ -70,7 +70,32 @@
             color: white;
             transform: translateY(-2px);
         }
+        
+        .countdown {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #4285f4;
+        }
     </style>
+    
+    {% if auto_redirect and google_url %}
+    <script>
+        let countdown = 5;
+        function updateCountdown() {
+            document.getElementById('countdown').textContent = countdown;
+            if (countdown <= 0) {
+                window.open('{{ google_url }}', '_blank');
+            } else {
+                countdown--;
+                setTimeout(updateCountdown, 1000);
+            }
+        }
+        
+        window.addEventListener('load', function() {
+            updateCountdown();
+        });
+    </script>
+    {% endif %}
 </head>
 <body>
     <div class="hero-section d-flex align-items-center">
@@ -121,6 +146,14 @@
                                             It only takes a minute and means the world to us.
                                         </small>
                                     </div>
+                                    
+                                    {% if auto_redirect %}
+                                    <div class="alert alert-info mb-4">
+                                        <i class="fas fa-clock me-2"></i>
+                                        <strong>Automatically redirecting to Google in <span id="countdown" class="countdown">5</span> seconds...</strong><br>
+                                        <small>Or click the button below to go now</small>
+                                    </div>
+                                    {% endif %}
                                     
                                     <div class="d-grid gap-2 mb-4">
                                         <a href="{{ google_url }}" 

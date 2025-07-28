@@ -1,7 +1,9 @@
 import os
+import uuid
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.utils import formatdate
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,14 +22,45 @@ def send_review_request_email(to_email, subject, message_template, customer_name
             review_link=review_link
         )
         
-        # Create message
-        msg = MIMEMultipart()
-        msg['From'] = os.environ.get('GMAIL_USER', 'noreply@example.com')
+        # Create message with proper headers to avoid spam
+        msg = MIMEMultipart('alternative')
+        gmail_user = os.environ.get('GMAIL_USER')
+        msg['From'] = f"{business_name} <{gmail_user}>"
         msg['To'] = to_email
         msg['Subject'] = subject
+        msg['Reply-To'] = gmail_user
         
-        # Add body to email
-        msg.attach(MIMEText(formatted_message, 'plain'))
+        # Add headers to improve deliverability
+        msg['Message-ID'] = f"<{uuid.uuid4()}@{gmail_user.split('@')[1]}>"
+        msg['Date'] = formatdate(localtime=True)
+        msg['X-Mailer'] = 'ReviewPro Business Platform'
+        
+        # Create both plain text and HTML versions
+        text_body = formatted_message
+        html_body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #2c5aa0;">Thank you for choosing {business_name}!</h2>
+                <p>{formatted_message.replace(chr(10), '<br>')}</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{review_link}" 
+                       style="background-color: #2c5aa0; color: white; padding: 12px 24px; 
+                              text-decoration: none; border-radius: 5px; display: inline-block;
+                              font-weight: bold;">Leave Your Review</a>
+                </div>
+                <p style="font-size: 12px; color: #666; margin-top: 30px;">
+                    This email was sent from {business_name}. If you have any questions, 
+                    please reply to this email.
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Add both versions
+        msg.attach(MIMEText(text_body, 'plain'))
+        msg.attach(MIMEText(html_body, 'html'))
         
         # Gmail SMTP configuration
         smtp_server = "smtp.gmail.com"
