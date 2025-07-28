@@ -9,7 +9,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     business_name = db.Column(db.String(200))
-    google_business_url = db.Column(db.String(500))
+    google_business_url = db.Column(db.Text)
     gmail_credentials = db.Column(db.Text)  # JSON string for Gmail API credentials
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)

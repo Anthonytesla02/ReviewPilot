@@ -8,6 +8,21 @@ This is a Flask-based web application that automates customer review management 
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (July 28, 2025)
+
+✅ **Smart Review Routing System**: Implemented intelligent rating-based routing:
+   - 1-3 stars → Detailed feedback form with issue categories
+   - 4 stars → Admin notification for improvement opportunities
+   - 5 stars → Auto-redirect to Google Reviews with countdown timer
+
+✅ **Production Email System**: Gmail SMTP integration with anti-spam headers and professional HTML templates
+
+✅ **Vercel Deployment Ready**: Created all necessary deployment files (vercel.json, wsgi.py, Procfile, runtime.txt, deploy.md)
+
+✅ **Database Optimization**: Fixed Google Business URL field length issue, updated to TEXT type
+
+✅ **Enhanced User Experience**: Visual star ratings, auto-redirect functionality, detailed feedback collection
+
 ## System Architecture
 
 ### Backend Architecture
