@@ -32,6 +32,8 @@ Preferred communication style: Simple, everyday language.
 
 ✅ **Enhanced User Experience**: Visual star ratings, auto-redirect functionality, detailed feedback collection
 
+✅ **Review Submission Fix**: Fixed critical "405 Method Not Allowed" error in review submission process
+
 ## System Architecture
 
 ### Backend Architecture

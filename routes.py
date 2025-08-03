@@ -358,7 +358,7 @@ def respond_to_review(id):
     
     return redirect(url_for('review_detail', id=id))
 
-@app.route('/review/<token>')
+@app.route('/review/<token>', methods=['GET', 'POST'])
 def public_review(token):
     # This is the public review form that customers will access
     review_request = ReviewRequest.query.filter_by(unique_token=token).first_or_404()
