@@ -17,7 +17,7 @@
 2. Connect your GitHub repository
 3. Use these settings:
    - **Runtime**: Python 3
-   - **Build Command**: `pip install -e .`
+   - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `gunicorn --bind 0.0.0.0:$PORT main:app`
    - **Environment**: Python 3.11
 
