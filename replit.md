@@ -34,6 +34,11 @@ Preferred communication style: Simple, everyday language.
 
 ✅ **Review Submission Fix**: Fixed critical "405 Method Not Allowed" error in review submission process
 
+✅ **Vercel Deployment Fix**: Resolved 500 errors in Vercel serverless deployment
+   - Fixed Flask-SQLAlchemy initialization for serverless environment
+   - Created proper api/app.py entry point for Vercel
+   - Added conditional database initialization to prevent build-time errors
+
 ## System Architecture
 
 ### Backend Architecture

@@ -24,11 +24,18 @@ database_url = os.environ.get("DATABASE_URL")
 # Fix for Vercel - ensure postgresql:// URLs work
 if database_url and database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
-app.config["SQLALCHEMY_DATABASE_URI"] = database_url
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 300,
-    "pool_pre_ping": True,
-}
+
+# Configure database only if DATABASE_URL is provided
+if database_url:
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
+    }
+else:
+    # Fallback for development or when no database is configured
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///temp.db"
+
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Initialize extensions
@@ -44,10 +51,17 @@ def load_user(user_id):
     from models import User
     return User.query.get(int(user_id))
 
-with app.app_context():
-    # Import models to ensure tables are created
-    import models
-    db.create_all()
-    
-    # Import routes
-    import routes
+# Import models first to register them
+import models
+
+# Only create tables if not in Vercel's build environment
+# Vercel runs this during build, but we need tables created at runtime
+if not os.environ.get("VERCEL_ENV"):
+    with app.app_context():
+        try:
+            db.create_all()
+        except Exception as e:
+            logging.error(f"Database initialization error: {e}")
+
+# Import routes
+import routes
