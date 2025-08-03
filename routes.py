@@ -389,35 +389,20 @@ def public_review(token):
         
         # Smart routing based on rating
         if form.rating.data <= 3:
-            # Very low rating (1-3 stars) - redirect to detailed feedback form
-            return redirect(url_for('detailed_feedback', token=token, rating=form.rating.data, comment=form.comment.data or ''))
-        elif form.rating.data == 4:
-            # 4 stars - send admin notification but show thank you message
-            try:
-                user = User.query.get(review_request.user_id)
-                customer = Customer.query.get(review_request.customer_id)
-                send_admin_notification(
-                    user.email,
-                    customer.name,
-                    form.rating.data,
-                    form.comment.data or "No additional comment provided"
-                )
-            except Exception as e:
-                logger.error(f"Failed to send admin notification: {str(e)}")
-            
-            return render_template('review_submitted.html', 
-                                 message='Thank you for your feedback! We appreciate your business and will continue to improve.',
-                                 is_low_rating=False)
-        else:
-            # 5 stars - redirect to Google Business page
+            # Low rating (1-3 stars) - redirect to detailed feedback form
+            comment_text = form.comment.data or ''
+            return redirect(url_for('detailed_feedback', token=token, rating=form.rating.data, comment=comment_text))
+        elif form.rating.data >= 4:
+            # High rating (4-5 stars) - redirect to Google Business page
             user = User.query.get(review_request.user_id)
-            if user.google_business_url:
+            if user and user.google_business_url:
                 return render_template('review_submitted.html',
                                      message='Thank you for your excellent feedback! Please consider sharing your experience on Google as well.',
                                      google_url=user.google_business_url,
                                      is_low_rating=False,
                                      auto_redirect=True)
             else:
+                # Fallback if no Google URL is set
                 return render_template('review_submitted.html',
                                      message='Thank you for your excellent feedback!',
                                      is_low_rating=False)
@@ -440,8 +425,8 @@ def detailed_feedback(token):
     
     form = DetailedFeedbackForm()
     if form.validate_on_submit():
-        # Create a detailed feedback record or update the existing review
-        review = Review.query.filter_by(customer_id=review_request.customer_id, rating=rating).first()
+        # Find the most recent review for this customer and rating
+        review = Review.query.filter_by(customer_id=review_request.customer_id, rating=rating).order_by(Review.created_at.desc()).first()
         if review:
             # Update the review with detailed feedback
             issues = []
@@ -474,12 +459,13 @@ Contact requested: {'Yes' if form.contact_me.data else 'No'}
             try:
                 user = User.query.get(review_request.user_id)
                 customer = Customer.query.get(review_request.customer_id)
-                send_admin_notification(
-                    user.email,
-                    customer.name,
-                    rating,
-                    detailed_comment
-                )
+                if user and customer:
+                    send_admin_notification(
+                        user.email,
+                        customer.name,
+                        rating,
+                        detailed_comment
+                    )
             except Exception as e:
                 logger.error(f"Failed to send detailed admin notification: {str(e)}")
         
