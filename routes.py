@@ -379,6 +379,23 @@ Warmly,
     
     return redirect(url_for('templates'))
 
+
+@app.route('/test-db')
+def test_database():
+    """Test route to check database connectivity"""
+    try:
+        from app import db
+        from models import User, ReviewTemplate
+        
+        # Test database connection
+        user_count = User.query.count()
+        template_count = ReviewTemplate.query.count()
+        
+        return f"Database OK! Users: {user_count}, Templates: {template_count}"
+    except Exception as e:
+        return f"Database Error: {str(e)}"
+
+
 @app.route('/customers')
 @login_required
 def customers():
