@@ -68,7 +68,7 @@
                     {% if review.comment %}
                         <div class="mb-4">
                             <h5 class="mb-3">Customer Comment</h5>
-                            <div class="p-3 bg-light rounded">
+                            <div class="p-3 border rounded" style="background-color: var(--bs-secondary-bg); color: var(--bs-body-color);">
                                 <p class="mb-0" style="white-space: pre-line;">{{ review.comment }}</p>
                             </div>
                         </div>
@@ -107,7 +107,7 @@
                     </div>
                     <div class="card-body">
                         {% if review.admin_response %}
-                            <div class="p-3 bg-light rounded mb-3">
+                            <div class="p-3 border rounded mb-3" style="background-color: var(--bs-secondary-bg); color: var(--bs-body-color);">
                                 <p class="mb-2" style="white-space: pre-line;">{{ review.admin_response }}</p>
                                 <small class="text-muted">
                                     Responded on {{ review.response_date.strftime('%B %d, %Y at %I:%M %p') }}

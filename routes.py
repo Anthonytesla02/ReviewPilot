@@ -62,12 +62,12 @@ def register():
         db.session.add(user)
         db.session.commit()
         
-        # Create default template
-        default_template = ReviewTemplate(
-            user_id=user.id,
-            name='Default Review Request',
-            subject='We\'d love your feedback on your recent visit!',
-            message='''Dear {customer_name},
+        # Create multiple email template designs
+        templates = [
+            {
+                'name': 'Professional Classic',
+                'subject': 'We\'d love your feedback on your recent visit!',
+                'message': '''Dear {customer_name},
 
 Thank you for choosing {business_name} for your recent service. We hope you had a great experience!
 
@@ -80,10 +80,86 @@ Thank you for your time and support!
 
 Best regards,
 {business_name} Team''',
-            is_default=True
-        )
+                'is_default': True
+            },
+            {
+                'name': 'Friendly & Personal',
+                'subject': 'How was your experience with us? 😊',
+                'message': '''Hi {customer_name}!
+
+We hope you loved your recent visit to {business_name}! 
+
+Your opinion means the world to us, and we'd be so grateful if you could share your experience. It only takes a minute and helps other customers discover what makes us special.
+
+Ready to share your thoughts?
+{review_link}
+
+Thanks a bunch!
+The {business_name} family 💙''',
+                'is_default': False
+            },
+            {
+                'name': 'Concise & Direct',
+                'subject': 'Quick feedback request',
+                'message': '''Hello {customer_name},
+
+Thank you for visiting {business_name}. 
+
+We'd appreciate your quick feedback: {review_link}
+
+Your review helps us serve you better.
+
+Thanks,
+{business_name}''',
+                'is_default': False
+            },
+            {
+                'name': 'Gratitude-Focused',
+                'subject': 'Thank you - we\'d love to hear from you!',
+                'message': '''Dear {customer_name},
+
+We're truly grateful you chose {business_name} and wanted to reach out personally.
+
+Your experience matters deeply to us. Whether everything went perfectly or there's something we could improve, we'd love to hear your honest thoughts.
+
+Share your experience here: {review_link}
+
+With sincere appreciation,
+{business_name}
+
+P.S. Your feedback helps us create better experiences for everyone!''',
+                'is_default': False
+            },
+            {
+                'name': 'Value-Driven',
+                'subject': 'Help others discover {business_name}!',
+                'message': '''Hi {customer_name},
+
+Thank you for being a valued customer of {business_name}!
+
+Would you help other customers by sharing your experience? Your honest review helps people make confident decisions and supports local businesses like ours.
+
+Leave your review: {review_link}
+
+As a small token of our appreciation, customers who leave reviews are always welcomed with a smile and our best service!
+
+Warmly,
+{business_name} Team''',
+                'is_default': False
+            }
+        ]
         
-        db.session.add(default_template)
+        for template_data in templates:
+            template = ReviewTemplate(
+                user_id=user.id,
+                name=template_data['name'],
+                subject=template_data['subject'],
+                message=template_data['message'],
+                is_default=template_data['is_default']
+            )
+            db.session.add(template)
+        
+        # Templates are added in the loop above
         db.session.commit()
         
         flash('Registration successful! Please log in.', 'success')
@@ -193,6 +269,114 @@ def delete_template(id):
     db.session.commit()
     
     flash('Template deleted successfully!', 'success')
+    return redirect(url_for('templates'))
+
+
+@app.route('/templates/preset', methods=['POST'])
+@login_required
+def add_preset_templates():
+    """Add preset email templates for existing users"""
+    # Check if user already has multiple templates
+    existing_count = ReviewTemplate.query.filter_by(user_id=current_user.id).count()
+    if existing_count >= 5:
+        flash('You already have plenty of templates!', 'info')
+        return redirect(url_for('templates'))
+    
+    # Add the new preset templates
+    templates = [
+        {
+            'name': 'Friendly & Personal',
+            'subject': 'How was your experience with us? 😊',
+            'message': '''Hi {customer_name}!
+
+We hope you loved your recent visit to {business_name}! 
+
+Your opinion means the world to us, and we'd be so grateful if you could share your experience. It only takes a minute and helps other customers discover what makes us special.
+
+Ready to share your thoughts?
+{review_link}
+
+Thanks a bunch!
+The {business_name} family 💙''',
+            'is_default': False
+        },
+        {
+            'name': 'Concise & Direct',
+            'subject': 'Quick feedback request',
+            'message': '''Hello {customer_name},
+
+Thank you for visiting {business_name}. 
+
+We'd appreciate your quick feedback: {review_link}
+
+Your review helps us serve you better.
+
+Thanks,
+{business_name}''',
+            'is_default': False
+        },
+        {
+            'name': 'Gratitude-Focused',
+            'subject': 'Thank you - we\'d love to hear from you!',
+            'message': '''Dear {customer_name},
+
+We're truly grateful you chose {business_name} and wanted to reach out personally.
+
+Your experience matters deeply to us. Whether everything went perfectly or there's something we could improve, we'd love to hear your honest thoughts.
+
+Share your experience here: {review_link}
+
+With sincere appreciation,
+{business_name}
+
+P.S. Your feedback helps us create better experiences for everyone!''',
+            'is_default': False
+        },
+        {
+            'name': 'Value-Driven',
+            'subject': 'Help others discover {business_name}!',
+            'message': '''Hi {customer_name},
+
+Thank you for being a valued customer of {business_name}!
+
+Would you help other customers by sharing your experience? Your honest review helps people make confident decisions and supports local businesses like ours.
+
+Leave your review: {review_link}
+
+As a small token of our appreciation, customers who leave reviews are always welcomed with a smile and our best service!
+
+Warmly,
+{business_name} Team''',
+            'is_default': False
+        }
+    ]
+    
+    added_count = 0
+    for template_data in templates:
+        # Check if template with similar name already exists
+        existing = ReviewTemplate.query.filter_by(
+            user_id=current_user.id, 
+            name=template_data['name']
+        ).first()
+        
+        if not existing:
+            template = ReviewTemplate(
+                user_id=current_user.id,
+                name=template_data['name'],
+                subject=template_data['subject'],
+                message=template_data['message'],
+                is_default=template_data['is_default']
+            )
+            db.session.add(template)
+            added_count += 1
+    
+    db.session.commit()
+    
+    if added_count > 0:
+        flash(f'Added {added_count} new email template designs!', 'success')
+    else:
+        flash('All preset templates already exist in your account.', 'info')
+    
     return redirect(url_for('templates'))
 
 @app.route('/customers')

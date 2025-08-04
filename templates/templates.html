@@ -11,6 +11,13 @@
             <p class="text-muted">Create and manage your review request email templates.</p>
         </div>
         <div class="col-sm-6 text-sm-end">
+            {% if templates|length < 5 %}
+                <form method="POST" action="{{ url_for('add_preset_templates') }}" class="d-inline me-2">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="fas fa-magic me-2"></i>Add Design Templates
+                    </button>
+                </form>
+            {% endif %}
             <a href="{{ url_for('new_template') }}" class="btn btn-primary">
                 <i class="fas fa-plus me-2"></i>New Template
             </a>
@@ -57,14 +64,14 @@
                             
                             <div class="mb-3">
                                 <h6 class="text-muted small mb-1">Subject:</h6>
-                                <p class="mb-2">{{ template.subject }}</p>
+                                <p class="mb-2 fw-medium">{{ template.subject }}</p>
                             </div>
                             
                             <div class="mb-3">
                                 <h6 class="text-muted small mb-1">Message Preview:</h6>
-                                <p class="text-muted small">
-                                    {{ template.message[:150] }}{% if template.message|length > 150 %}...{% endif %}
-                                </p>
+                                <div class="p-2 border rounded" style="background-color: var(--bs-secondary-bg); color: var(--bs-body-color);">
+                                    <small style="white-space: pre-line;">{{ template.message[:200] }}{% if template.message|length > 200 %}...{% endif %}</small>
+                                </div>
                             </div>
                             
                             <div class="row text-center border-top pt-3">
