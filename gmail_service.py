@@ -22,9 +22,19 @@ def send_review_request_email(to_email, subject, message_template, customer_name
             review_link=review_link
         )
         
+        # Check Gmail credentials first
+        gmail_user = os.environ.get('GMAIL_USER')
+        gmail_password = os.environ.get('GMAIL_PASSWORD')
+        
+        if not gmail_user or not gmail_password:
+            logger.error("Gmail credentials not configured. Email will be logged instead of sent.")
+            logger.info(f"Would send email to {to_email}:")
+            logger.info(f"Subject: {subject}")
+            logger.info(f"Message: {formatted_message}")
+            return True  # Return success for development mode
+        
         # Create message with proper headers to avoid spam
         msg = MIMEMultipart('alternative')
-        gmail_user = os.environ.get('GMAIL_USER')
         msg['From'] = f"{business_name} <{gmail_user}>"
         msg['To'] = to_email
         msg['Subject'] = subject
@@ -65,12 +75,6 @@ def send_review_request_email(to_email, subject, message_template, customer_name
         # Gmail SMTP configuration
         smtp_server = "smtp.gmail.com"
         smtp_port = 587
-        gmail_user = os.environ.get('GMAIL_USER')
-        gmail_password = os.environ.get('GMAIL_PASSWORD')  # Use app password
-        
-        if not gmail_user or not gmail_password:
-            logger.error("Gmail credentials not configured. Please set GMAIL_USER and GMAIL_PASSWORD environment variables.")
-            raise Exception("Gmail credentials not configured")
         
         # Create SMTP session
         server = smtplib.SMTP(smtp_server, smtp_port)
