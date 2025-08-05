@@ -790,11 +790,16 @@ def ai_send_response(review_id):
         return redirect(url_for('review_detail', id=review_id))
     
     try:
-        success = AutomationService.send_ai_response(review_id, message)
-        if success:
-            flash('Response sent successfully!', 'success')
+        if AutomationService:
+            success = AutomationService.send_ai_response(review_id, message)
+            if success:
+                flash('Response sent successfully!', 'success')
+            else:
+                flash('Error sending response. Please try again.', 'danger')
         else:
-            flash('Error sending response. Please try again.', 'danger')
+            # Fallback for serverless environments - log the response
+            logger.info(f"Response would be sent for review {review_id}: {message}")
+            flash('Response logged (automation service not available in this environment)', 'info')
     except Exception as e:
         logger.error(f"Error sending response: {e}")
         flash('Error sending response. Please try again.', 'danger')
@@ -885,8 +890,9 @@ def voice_feedback(token):
             
             db.session.commit()
             
-            # Process with AI automation
-            AutomationService.process_new_review(review.id)
+            # Process with AI automation if available
+            if AutomationService:
+                AutomationService.process_new_review(review.id)
             
             flash('Voice feedback submitted successfully!', 'success')
             return render_template('review_submitted.html', 
