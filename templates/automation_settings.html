@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}AI Automation Settings{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <h2><i class="fas fa-robot me-2"></i>AI Automation Settings</h2>
+            <p class="text-muted">Configure automated review processing, follow-ups, and AI responses.</p>
+            
+            <form method="POST">
+                <!-- Follow-up Email Settings -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-envelope me-2"></i>Automated Follow-up Emails</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="follow_up_enabled" 
+                                   name="follow_up_enabled" {% if settings.follow_up_enabled %}checked{% endif %}>
+                            <label class="form-check-label" for="follow_up_enabled">
+                                Enable automated follow-up email sequences
+                            </label>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="follow_up_delay_1" class="form-label">First Follow-up (days)</label>
+                                <input type="number" class="form-control" id="follow_up_delay_1" 
+                                       name="follow_up_delay_1" value="{{ settings.follow_up_delay_1 or 3 }}" min="1" max="30">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="follow_up_delay_2" class="form-label">Second Follow-up (days)</label>
+                                <input type="number" class="form-control" id="follow_up_delay_2" 
+                                       name="follow_up_delay_2" value="{{ settings.follow_up_delay_2 or 7 }}" min="1" max="30">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="follow_up_delay_3" class="form-label">Final Follow-up (days)</label>
+                                <input type="number" class="form-control" id="follow_up_delay_3" 
+                                       name="follow_up_delay_3" value="{{ settings.follow_up_delay_3 or 14 }}" min="1" max="30">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Response Settings -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-brain me-2"></i>AI Response Generation</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="ai_auto_reply_enabled" 
+                                   name="ai_auto_reply_enabled" {% if settings.ai_auto_reply_enabled %}checked{% endif %}>
+                            <label class="form-check-label" for="ai_auto_reply_enabled">
+                                Generate AI response suggestions for all reviews
+                            </label>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="ai_tone" class="form-label">AI Response Tone</label>
+                            <select class="form-select" id="ai_tone" name="ai_tone">
+                                <option value="professional" {% if settings.ai_tone == 'professional' %}selected{% endif %}>Professional</option>
+                                <option value="friendly" {% if settings.ai_tone == 'friendly' %}selected{% endif %}>Friendly</option>
+                                <option value="casual" {% if settings.ai_tone == 'casual' %}selected{% endif %}>Casual</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Settings -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-bar me-2"></i>Automated Reports</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="report_frequency" class="form-label">Report Frequency</label>
+                            <select class="form-select" id="report_frequency" name="report_frequency">
+                                <option value="weekly" {% if settings.report_frequency == 'weekly' %}selected{% endif %}>Weekly</option>
+                                <option value="monthly" {% if settings.report_frequency == 'monthly' %}selected{% endif %}>Monthly</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="report_recipients" class="form-label">Email Recipients (comma separated)</label>
+                            <input type="text" class="form-control" id="report_recipients" 
+                                   name="report_recipients" value="{{ settings.report_recipients }}" 
+                                   placeholder="email1@example.com, email2@example.com">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Referral Settings -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-gift me-2"></i>Referral & Loyalty Program</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="referral_reward_enabled" 
+                                   name="referral_reward_enabled" {% if settings.referral_reward_enabled %}checked{% endif %}>
+                            <label class="form-check-label" for="referral_reward_enabled">
+                                Send referral rewards for 5-star reviews
+                            </label>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="referral_reward_value" class="form-label">Reward Description</label>
+                            <input type="text" class="form-control" id="referral_reward_value" 
+                                   name="referral_reward_value" value="{{ settings.referral_reward_value or '10% off next service' }}" 
+                                   placeholder="e.g., 10% off next service, $10 credit">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Save Settings
+                </button>
+            </form>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-info-circle me-2"></i>Automation Overview</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>Follow-up Emails:</strong> Automatically remind customers who haven't left reviews yet.</p>
+                    <p><strong>AI Responses:</strong> Generate intelligent responses to customer feedback using Mistral AI.</p>
+                    <p><strong>Reports:</strong> Receive weekly/monthly PDF summaries of your review performance.</p>
+                    <p><strong>Referrals:</strong> Reward 5-star customers with referral links and incentives.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Voice Feedback - {{ business.business_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h4><i class="fas fa-microphone me-2"></i>Voice Feedback</h4>
+                    <p class="mb-0 text-muted">{{ business.business_name }}</p>
+                </div>
+                <div class="card-body">
+                    <p>Hi {{ customer.name }}! We'd love to hear your thoughts about your recent experience. You can record a short voice message below.</p>
+                    
+                    <form method="POST" enctype="multipart/form-data">
+                        <!-- Rating -->
+                        <div class="mb-4">
+                            <label class="form-label">Overall Rating</label>
+                            <div class="rating-stars" id="rating-stars">
+                                {% for i in range(1, 6) %}
+                                <span class="star" data-rating="{{ i }}">
+                                    <i class="far fa-star"></i>
+                                </span>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" name="rating" id="rating-input" value="5">
+                        </div>
+
+                        <!-- Voice Recording -->
+                        <div class="mb-4">
+                            <label for="voice_file" class="form-label">Voice Recording</label>
+                            <input type="file" class="form-control" id="voice_file" name="voice_file" 
+                                   accept="audio/*" required>
+                            <div class="form-text">
+                                Please upload an audio file (max 5 minutes, 50MB). Supported formats: MP3, WAV, M4A, OGG
+                            </div>
+                        </div>
+
+                        <!-- Recording Instructions -->
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>Recording Tips:</h6>
+                            <ul class="mb-0">
+                                <li>Find a quiet location</li>
+                                <li>Speak clearly and at normal pace</li>
+                                <li>Keep recording under 3 minutes</li>
+                                <li>Share what you liked and any suggestions</li>
+                            </ul>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-upload me-2"></i>Submit Voice Feedback
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Star rating functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const stars = document.querySelectorAll('.star');
+    const ratingInput = document.getElementById('rating-input');
+
+    stars.forEach(star => {
+        star.addEventListener('click', function() {
+            const rating = parseInt(this.dataset.rating);
+            ratingInput.value = rating;
+            updateStars(rating);
+        });
+
+        star.addEventListener('mouseover', function() {
+            const rating = parseInt(this.dataset.rating);
+            updateStars(rating);
+        });
+    });
+
+    document.getElementById('rating-stars').addEventListener('mouseleave', function() {
+        const currentRating = parseInt(ratingInput.value);
+        updateStars(currentRating);
+    });
+
+    function updateStars(rating) {
+        stars.forEach((star, index) => {
+            const icon = star.querySelector('i');
+            if (index < rating) {
+                icon.className = 'fas fa-star text-warning';
+            } else {
+                icon.className = 'far fa-star text-muted';
+            }
+        });
+    }
+
+    // Set initial rating
+    updateStars(5);
+});
+</script>
+
+<style>
+.rating-stars {
+    display: flex;
+    gap: 5px;
+    font-size: 1.5rem;
+}
+
+.star {
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.star:hover {
+    transform: scale(1.1);
+}
+</style>
+{% endblock %}

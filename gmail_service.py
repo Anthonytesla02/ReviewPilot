@@ -139,3 +139,86 @@ def send_admin_notification(admin_email, customer_name, rating, comment):
     except Exception as e:
         logger.error(f"Error sending admin notification: {str(e)}")
         return False
+
+def send_email(to_email, subject, message, user_id=None, attachment_path=None):
+    """
+    Generic email sending function for automation features
+    """
+    try:
+        # Create message with proper headers
+        msg = MIMEMultipart()
+        gmail_user = os.environ.get('GMAIL_USER')
+        
+        # Get business name from user if provided
+        business_name = "Review Automation Platform"
+        if user_id:
+            from models import User
+            user = User.query.get(user_id)
+            if user and user.business_name:
+                business_name = user.business_name
+        
+        msg['From'] = f"{business_name} <{gmail_user}>"
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg['Reply-To'] = gmail_user
+        
+        # Add headers
+        msg['Message-ID'] = f"<{uuid.uuid4()}@{gmail_user.split('@')[1] if gmail_user else 'localhost'}>"
+        msg['Date'] = formatdate(localtime=True)
+        
+        # Create HTML version
+        html_body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <p>{message.replace(chr(10), '<br>')}</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="font-size: 12px; color: #666;">
+                    This email was sent from {business_name}.
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Add both versions
+        msg.attach(MIMEText(message, 'plain'))
+        msg.attach(MIMEText(html_body, 'html'))
+        
+        # Add attachment if provided
+        if attachment_path and os.path.exists(attachment_path):
+            with open(attachment_path, 'rb') as attachment:
+                from email.mime.base import MIMEBase
+                from email import encoders
+                
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload(attachment.read())
+                encoders.encode_base64(part)
+                part.add_header(
+                    'Content-Disposition',
+                    f'attachment; filename= {os.path.basename(attachment_path)}'
+                )
+                msg.attach(part)
+        
+        # Gmail SMTP configuration
+        smtp_server = "smtp.gmail.com"
+        smtp_port = 587
+        gmail_password = os.environ.get('GMAIL_PASSWORD')
+        
+        if not gmail_user or not gmail_password:
+            logger.warning("Gmail credentials not configured - email not sent")
+            return False
+        
+        # Send email
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(gmail_user, gmail_password)
+        server.send_message(msg)
+        server.quit()
+        
+        logger.info(f"Email sent successfully to {to_email}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to send email to {to_email}: {str(e)}")
+        return False

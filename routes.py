@@ -4,11 +4,15 @@ from datetime import datetime
 from flask import render_template, redirect, url_for, flash, request, abort
 from flask_login import login_user, logout_user, login_required, current_user
 from app import app, db
-from models import User, ReviewTemplate, Customer, Review, ReviewRequest
+from models import (User, ReviewTemplate, Customer, Review, ReviewRequest,
+                  ReviewConversation, FollowUpSequence, Referral, AutomationSettings)
 from forms import (LoginForm, RegistrationForm, ReviewTemplateForm, CustomerForm, 
                   ReviewForm, AdminResponseForm, SettingsForm, SendReviewRequestForm, DetailedFeedbackForm)
 from gmail_service import send_review_request_email, send_admin_notification
 from utils import generate_review_link
+from ai_service import mistral_service
+from automation_service import AutomationService
+from voice_service import voice_service
 
 logger = logging.getLogger(__name__)
 
@@ -730,6 +734,271 @@ def analytics():
                          rating_counts=rating_counts,
                          monthly_reviews=monthly_reviews,
                          avg_rating=avg_rating)
+
+# ==== AI AUTOMATION ROUTES ====
+
+@app.route('/ai/generate-response/<int:review_id>')
+@login_required
+def ai_generate_response(review_id):
+    """Generate AI response suggestion for a review"""
+    review = Review.query.filter_by(id=review_id, user_id=current_user.id).first_or_404()
+    
+    if not review.comment:
+        flash('Cannot generate response for review without comment', 'warning')
+        return redirect(url_for('review_detail', id=review_id))
+    
+    try:
+        # Get user's AI settings
+        settings = AutomationSettings.query.filter_by(user_id=current_user.id).first()
+        tone = settings.ai_tone if settings else 'professional'
+        
+        # Generate AI response
+        suggestion = mistral_service.generate_response_suggestion(
+            review.comment,
+            review.rating,
+            current_user.business_name or "our business",
+            tone
+        )
+        
+        # Save suggestion to review
+        review.ai_suggested_response = suggestion
+        db.session.commit()
+        
+        flash('AI response suggestion generated successfully!', 'success')
+        
+    except Exception as e:
+        logger.error(f"Error generating AI response: {e}")
+        flash('Error generating AI response. Please try again.', 'danger')
+    
+    return redirect(url_for('review_detail', id=review_id))
+
+@app.route('/ai/send-response/<int:review_id>', methods=['POST'])
+@login_required
+def ai_send_response(review_id):
+    """Send AI-generated or custom response to customer"""
+    review = Review.query.filter_by(id=review_id, user_id=current_user.id).first_or_404()
+    
+    # Get message from form (either AI suggestion or custom)
+    message = request.form.get('response_message', '').strip()
+    if not message:
+        flash('Response message is required', 'danger')
+        return redirect(url_for('review_detail', id=review_id))
+    
+    try:
+        success = AutomationService.send_ai_response(review_id, message)
+        if success:
+            flash('Response sent successfully!', 'success')
+        else:
+            flash('Error sending response. Please try again.', 'danger')
+    except Exception as e:
+        logger.error(f"Error sending response: {e}")
+        flash('Error sending response. Please try again.', 'danger')
+    
+    return redirect(url_for('review_detail', id=review_id))
+
+@app.route('/automation/settings', methods=['GET', 'POST'])
+@login_required
+def automation_settings():
+    """Configure automation settings"""
+    settings = AutomationSettings.query.filter_by(user_id=current_user.id).first()
+    if not settings:
+        settings = AutomationSettings(user_id=current_user.id)
+        db.session.add(settings)
+        db.session.commit()
+    
+    if request.method == 'POST':
+        # Update settings from form
+        settings.follow_up_enabled = bool(request.form.get('follow_up_enabled'))
+        settings.follow_up_delay_1 = int(request.form.get('follow_up_delay_1', 3))
+        settings.follow_up_delay_2 = int(request.form.get('follow_up_delay_2', 7))
+        settings.follow_up_delay_3 = int(request.form.get('follow_up_delay_3', 14))
+        
+        settings.ai_auto_reply_enabled = bool(request.form.get('ai_auto_reply_enabled'))
+        settings.ai_tone = request.form.get('ai_tone', 'professional')
+        
+        settings.report_frequency = request.form.get('report_frequency', 'weekly')
+        settings.report_recipients = request.form.get('report_recipients', '')
+        
+        settings.referral_reward_enabled = bool(request.form.get('referral_reward_enabled'))
+        settings.referral_reward_value = request.form.get('referral_reward_value', '10% off next service')
+        
+        db.session.commit()
+        flash('Automation settings updated successfully!', 'success')
+        return redirect(url_for('automation_settings'))
+    
+    return render_template('automation_settings.html', settings=settings)
+
+@app.route('/voice-feedback/<token>', methods=['GET', 'POST'])
+def voice_feedback(token):
+    """Voice feedback submission page"""
+    review_request = ReviewRequest.query.filter_by(unique_token=token).first_or_404()
+    
+    if request.method == 'POST':
+        try:
+            # Handle voice file upload
+            if 'voice_file' not in request.files:
+                flash('No voice file uploaded', 'danger')
+                return redirect(url_for('voice_feedback', token=token))
+            
+            file = request.files['voice_file']
+            if file.filename == '':
+                flash('No file selected', 'danger')
+                return redirect(url_for('voice_feedback', token=token))
+            
+            # Save voice recording
+            file_path = voice_service.save_voice_recording(file)
+            if not file_path:
+                flash('Invalid audio file format', 'danger')
+                return redirect(url_for('voice_feedback', token=token))
+            
+            # Validate audio file
+            validation = voice_service.validate_audio_file(file_path)
+            if not validation['valid']:
+                flash(f'Audio file validation failed: {validation.get("error", "File too large or too long")}', 'danger')
+                return redirect(url_for('voice_feedback', token=token))
+            
+            # Transcribe audio
+            transcription = voice_service.transcribe_audio(file_path)
+            
+            # Get rating from form
+            rating = int(request.form.get('rating', 5))
+            
+            # Create review with voice data
+            review = Review(
+                user_id=review_request.user_id,
+                customer_id=review_request.customer_id,
+                rating=rating,
+                comment=transcription,
+                voice_recording_path=file_path,
+                voice_transcription=transcription
+            )
+            db.session.add(review)
+            
+            # Update review request status
+            review_request.completed_at = datetime.utcnow()
+            review_request.status = 'completed'
+            
+            db.session.commit()
+            
+            # Process with AI automation
+            AutomationService.process_new_review(review.id)
+            
+            flash('Voice feedback submitted successfully!', 'success')
+            return render_template('review_submitted.html', 
+                                 message='Thank you for your voice feedback!')
+            
+        except Exception as e:
+            logger.error(f"Error processing voice feedback: {e}")
+            flash('Error processing voice feedback. Please try again.', 'danger')
+    
+    customer = Customer.query.get(review_request.customer_id)
+    business = User.query.get(review_request.user_id)
+    
+    return render_template('voice_feedback.html', 
+                         customer=customer, 
+                         business=business,
+                         token=token)
+
+@app.route('/customer-segments')
+@login_required
+def customer_segments():
+    """View and manage customer segments"""
+    # Get segment filters from query params
+    min_services = request.args.get('min_services', type=int)
+    rating_filter = request.args.get('rating_filter')
+    service_type = request.args.get('service_type')
+    location = request.args.get('location')
+    
+    # Build query
+    query = Customer.query.filter_by(user_id=current_user.id)
+    
+    if min_services:
+        query = query.filter(Customer.total_services >= min_services)
+    
+    if rating_filter == 'high':
+        query = query.filter(Customer.average_rating >= 4.0)
+    elif rating_filter == 'low':
+        query = query.filter(Customer.average_rating < 3.0)
+    
+    if service_type:
+        query = query.filter(Customer.service_type.ilike(f'%{service_type}%'))
+    
+    if location:
+        query = query.filter(Customer.location.ilike(f'%{location}%'))
+    
+    customers = query.all()
+    
+    # Get unique values for filters
+    all_customers = Customer.query.filter_by(user_id=current_user.id).all()
+    service_types = list(set(c.service_type for c in all_customers if c.service_type))
+    locations = list(set(c.location for c in all_customers if c.location))
+    
+    return render_template('customer_segments.html', 
+                         customers=customers,
+                         service_types=service_types,
+                         locations=locations,
+                         current_filters={
+                             'min_services': min_services,
+                             'rating_filter': rating_filter,
+                             'service_type': service_type,
+                             'location': location
+                         })
+
+@app.route('/referral/<token>')
+def referral_landing(token):
+    """Referral landing page"""
+    referral = Referral.query.filter_by(referral_token=token).first_or_404()
+    
+    if referral.used_at:
+        # Referral already used
+        message = "This referral link has already been used. Thank you for your interest!"
+    else:
+        # Active referral
+        business = User.query.get(referral.user_id)
+        message = f"Welcome! You've been referred to {business.business_name} by one of our valued customers."
+        
+        # You could integrate with booking system here
+        # For now, just show a welcome message with contact info
+    
+    return render_template('referral_landing.html', 
+                         referral=referral,
+                         message=message)
+
+@app.route('/reports/generate/<report_type>')
+@login_required
+def generate_report(report_type):
+    """Generate and download PDF report"""
+    if report_type not in ['weekly', 'monthly']:
+        abort(400)
+    
+    try:
+        from report_generator import generate_pdf_report
+        
+        report_path = generate_pdf_report(current_user.id, report_type)
+        if report_path:
+            flash(f'{report_type.title()} report generated successfully!', 'success')
+            # In a real implementation, you'd send the file as download
+            # For now, just show success message
+        else:
+            flash('Error generating report', 'danger')
+    except Exception as e:
+        logger.error(f"Error generating report: {e}")
+        flash('Error generating report', 'danger')
+    
+    return redirect(url_for('analytics'))
+
+@app.route('/review/<int:id>/conversation')
+@login_required  
+def review_conversation(id):
+    """View conversation history for a review"""
+    review = Review.query.filter_by(id=id, user_id=current_user.id).first_or_404()
+    
+    conversations = ReviewConversation.query.filter_by(review_id=id)\
+        .order_by(ReviewConversation.sent_at.asc()).all()
+    
+    return render_template('review_conversation.html', 
+                         review=review, 
+                         conversations=conversations)
 
 @app.errorhandler(404)
 def not_found_error(error):

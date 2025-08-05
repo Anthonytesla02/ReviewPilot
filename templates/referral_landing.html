@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome! You've been referred{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="text-center mb-5">
+                <i class="fas fa-gift fa-4x text-primary mb-3"></i>
+                <h1>Welcome!</h1>
+                <p class="lead">{{ message }}</p>
+            </div>
+
+            {% if not referral.used_at %}
+            <!-- Active Referral -->
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h3>Why Choose Us?</h3>
+                            <ul class="list-unstyled">
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Excellent customer service</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Professional quality work</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Trusted by satisfied customers</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Competitive pricing</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="bg-light p-4 rounded">
+                                <h4>Special Welcome Offer</h4>
+                                <p class="text-muted">As a referred customer, you're eligible for exclusive benefits when you book with us.</p>
+                                
+                                <div class="text-center">
+                                    <button class="btn btn-primary btn-lg" onclick="contactBusiness()">
+                                        <i class="fas fa-phone me-2"></i>Contact Us
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- About the Referrer -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5><i class="fas fa-user-friends me-2"></i>About Your Referrer</h5>
+                    <p>{{ referral.referrer.name }} recommended us because they had a great experience with our service. Join the growing family of satisfied customers!</p>
+                    
+                    {% if referral.referrer.reviews %}
+                    {% set latest_review = referral.referrer.reviews|selectattr('rating', 'eq', 5)|first %}
+                    {% if latest_review %}
+                    <blockquote class="blockquote">
+                        <p>"{{ latest_review.comment[:150] }}{% if latest_review.comment|length > 150 %}...{% endif %}"</p>
+                        <footer class="blockquote-footer">{{ referral.referrer.name }}</footer>
+                    </blockquote>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            {% else %}
+            <!-- Used Referral -->
+            <div class="card">
+                <div class="card-body text-center p-5">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <h3>Referral Already Used</h3>
+                    <p>This referral link has already been used, but we'd still love to serve you!</p>
+                    
+                    <button class="btn btn-primary" onclick="contactBusiness()">
+                        <i class="fas fa-phone me-2"></i>Contact Us Anyway
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function contactBusiness() {
+    // In a real implementation, this would integrate with your booking system
+    // For now, we'll show contact information
+    
+    alert('Contact Information:\n\nPhone: (555) 123-4567\nEmail: info@business.com\n\nMention referral code: {{ referral.referral_token }} for your special offer!');
+    
+    // Mark referral as used (in real implementation)
+    // You would make an AJAX call here to mark the referral as used
+}
+</script>
+{% endblock %}

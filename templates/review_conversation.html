@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Review Conversation - {{ review.customer.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Review Details -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-star me-2"></i>Original Review</h5>
+                    <div>
+                        {% for i in range(1, 6) %}
+                        <i class="fas fa-star {% if i <= review.rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h6>{{ review.customer.name }}</h6>
+                    <p class="text-muted small">{{ review.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                    {% if review.comment %}
+                    <p>"{{ review.comment }}"</p>
+                    {% endif %}
+                    
+                    <!-- AI Analysis -->
+                    {% if review.sentiment %}
+                    <div class="mt-3">
+                        <strong>AI Analysis:</strong>
+                        <span class="badge {% if review.sentiment == 'satisfied' %}bg-success{% elif review.sentiment in ['frustrated', 'angry'] %}bg-danger{% elif review.sentiment == 'confused' %}bg-warning{% else %}bg-secondary{% endif %}">
+                            {{ review.sentiment.title() }}
+                        </span>
+                        {% if review.sentiment_score %}
+                        <small class="text-muted">({{ "%.0f"|format(review.sentiment_score * 100) }}% confidence)</small>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if review.review_category %}
+                    <div class="mt-2">
+                        <strong>Category:</strong> 
+                        <span class="badge bg-info">{{ review.review_category.title() }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Conversation History -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-comments me-2"></i>Conversation History</h5>
+                </div>
+                <div class="card-body">
+                    {% if conversations %}
+                    <div class="conversation-timeline">
+                        {% for conv in conversations %}
+                        <div class="conversation-item {% if conv.sender == 'customer' %}customer-message{% elif conv.sender == 'ai' %}ai-message{% else %}admin-message{% endif %}">
+                            <div class="conversation-header">
+                                <strong>
+                                    {% if conv.sender == 'customer' %}
+                                    <i class="fas fa-user me-1"></i>{{ review.customer.name }}
+                                    {% elif conv.sender == 'ai' %}
+                                    <i class="fas fa-robot me-1"></i>AI Assistant
+                                    {% else %}
+                                    <i class="fas fa-user-tie me-1"></i>Admin
+                                    {% endif %}
+                                </strong>
+                                <small class="text-muted ms-2">{{ conv.sent_at.strftime('%b %d, %Y at %I:%M %p') }}</small>
+                                {% if conv.is_ai_generated %}
+                                <span class="badge bg-primary ms-2">AI Generated</span>
+                                {% endif %}
+                            </div>
+                            <div class="conversation-message">
+                                {{ conv.message|nl2br }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-3">No conversation history yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- AI Response Suggestion -->
+            {% if review.ai_suggested_response %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-lightbulb me-2"></i>AI Suggestion</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small">{{ review.ai_suggested_response }}</p>
+                    <form method="POST" action="{{ url_for('ai_send_response', review_id=review.id) }}">
+                        <input type="hidden" name="response_message" value="{{ review.ai_suggested_response }}">
+                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                            <i class="fas fa-paper-plane me-1"></i>Send AI Response
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Custom Response -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-edit me-2"></i>Send Response</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('ai_send_response', review_id=review.id) }}">
+                        <div class="mb-3">
+                            <textarea class="form-control" name="response_message" rows="4" 
+                                      placeholder="Write your response...">{{ review.ai_suggested_response or '' }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-paper-plane me-1"></i>Send Response
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-tools me-2"></i>Actions</h6>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('ai_generate_response', review_id=review.id) }}" 
+                       class="btn btn-outline-primary w-100 mb-2">
+                        <i class="fas fa-magic me-1"></i>Generate AI Response
+                    </a>
+                    <a href="{{ url_for('reviews') }}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Reviews
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.conversation-timeline {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.conversation-item {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+.customer-message {
+    background-color: #f8f9fa;
+    border-left-color: #007bff;
+}
+
+.ai-message {
+    background-color: #e3f2fd;
+    border-left-color: #2196f3;
+}
+
+.admin-message {
+    background-color: #fff3e0;
+    border-left-color: #ff9800;
+}
+
+.conversation-header {
+    margin-bottom: 0.5rem;
+}
+
+.conversation-message {
+    line-height: 1.5;
+}
+</style>
+{% endblock %}

@@ -57,8 +57,17 @@ class Customer(db.Model):
     review_request_date = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+    # Segmentation fields
+    total_services = db.Column(db.Integer, default=1)
+    average_rating = db.Column(db.Float)
+    last_rating = db.Column(db.Integer)
+    location = db.Column(db.String(200))
+    segment_tags = db.Column(db.Text)  # JSON array of tags
+    
     # Relationships
     reviews = db.relationship('Review', backref='customer', lazy=True)
+    follow_ups = db.relationship('FollowUpSequence', backref='customer', lazy=True, cascade='all, delete-orphan')
+    referrals = db.relationship('Referral', backref='customer', lazy=True, cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Customer {self.name}>'
@@ -73,6 +82,17 @@ class Review(db.Model):
     admin_response = db.Column(db.Text)
     response_date = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # AI Enhancement fields
+    sentiment = db.Column(db.String(50))  # satisfied, confused, frustrated, angry, neutral
+    sentiment_score = db.Column(db.Float)  # confidence score 0-1
+    ai_suggested_response = db.Column(db.Text)
+    voice_recording_path = db.Column(db.String(500))  # path to voice file
+    voice_transcription = db.Column(db.Text)
+    review_category = db.Column(db.String(100))  # complaint, praise, suggestion
+    
+    # Relationships
+    conversation_history = db.relationship('ReviewConversation', backref='review', lazy=True, cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Review {self.rating} stars from {self.customer.name}>'
@@ -93,3 +113,98 @@ class ReviewRequest(db.Model):
     
     def __repr__(self):
         return f'<ReviewRequest {self.unique_token}>'
+
+# New models for AI automation features
+
+class ReviewConversation(db.Model):
+    """Track conversation history for each review"""
+    id = db.Column(db.Integer, primary_key=True)
+    review_id = db.Column(db.Integer, db.ForeignKey('review.id'), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    sender = db.Column(db.String(50), nullable=False)  # 'admin', 'ai', 'customer'
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_ai_generated = db.Column(db.Boolean, default=False)
+    
+    def __repr__(self):
+        return f'<ReviewConversation {self.sender}: {self.message[:50]}>'
+
+class FollowUpSequence(db.Model):
+    """Track automated follow-up email sequences"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
+    sequence_step = db.Column(db.Integer, default=1)  # 1, 2, 3
+    scheduled_for = db.Column(db.DateTime, nullable=False)
+    sent_at = db.Column(db.DateTime)
+    status = db.Column(db.String(50), default='scheduled')  # scheduled, sent, cancelled
+    email_content = db.Column(db.Text)
+    
+    def __repr__(self):
+        return f'<FollowUpSequence Step {self.sequence_step} for {self.customer.name}>'
+
+class Referral(db.Model):
+    """Track referral links and conversions"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)  # referrer
+    referral_token = db.Column(db.String(100), unique=True, nullable=False)
+    referred_customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))  # referred customer
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    used_at = db.Column(db.DateTime)
+    reward_sent = db.Column(db.Boolean, default=False)
+    
+    # Relationships
+    referrer = db.relationship('Customer', foreign_keys=[customer_id], backref='sent_referrals')
+    referred = db.relationship('Customer', foreign_keys=[referred_customer_id], backref='received_referrals')
+    
+    def __repr__(self):
+        return f'<Referral {self.referral_token}>'
+
+class AutomationSettings(db.Model):
+    """User-configurable automation settings"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Follow-up settings
+    follow_up_enabled = db.Column(db.Boolean, default=True)
+    follow_up_delay_1 = db.Column(db.Integer, default=3)  # days
+    follow_up_delay_2 = db.Column(db.Integer, default=7)  # days  
+    follow_up_delay_3 = db.Column(db.Integer, default=14)  # days
+    follow_up_message_1 = db.Column(db.Text)
+    follow_up_message_2 = db.Column(db.Text)
+    follow_up_message_3 = db.Column(db.Text)
+    
+    # AI response settings
+    ai_auto_reply_enabled = db.Column(db.Boolean, default=False)
+    ai_tone = db.Column(db.String(50), default='professional')  # professional, friendly, casual
+    ai_language = db.Column(db.String(10), default='en')
+    
+    # Report settings
+    report_frequency = db.Column(db.String(20), default='weekly')  # weekly, monthly
+    report_recipients = db.Column(db.Text)  # JSON array of emails
+    
+    # Referral settings
+    referral_reward_enabled = db.Column(db.Boolean, default=True)
+    referral_reward_type = db.Column(db.String(50), default='discount')  # discount, loyalty_points
+    referral_reward_value = db.Column(db.String(100), default='10% off next service')
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref=db.backref('automation_settings', uselist=False))
+    
+    def __repr__(self):
+        return f'<AutomationSettings for {self.user.username}>'
+
+class ReportGeneration(db.Model):
+    """Track generated reports"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    report_type = db.Column(db.String(50), nullable=False)  # weekly, monthly
+    generated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    file_path = db.Column(db.String(500))
+    sent_to = db.Column(db.Text)  # JSON array of recipient emails
+    
+    def __repr__(self):
+        return f'<ReportGeneration {self.report_type} for {self.user.username}>'

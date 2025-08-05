@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Segments{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-12">
+            <h2><i class="fas fa-users me-2"></i>Customer Segments</h2>
+            <p class="text-muted">Filter and target specific customer groups for campaigns.</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-filter me-2"></i>Segment Filters</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label for="min_services" class="form-label">Min Services</label>
+                        <input type="number" class="form-control" id="min_services" name="min_services" 
+                               value="{{ current_filters.min_services or '' }}" placeholder="e.g., 3">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="rating_filter" class="form-label">Rating Filter</label>
+                        <select class="form-select" id="rating_filter" name="rating_filter">
+                            <option value="">All Ratings</option>
+                            <option value="high" {% if current_filters.rating_filter == 'high' %}selected{% endif %}>High (4-5 stars)</option>
+                            <option value="low" {% if current_filters.rating_filter == 'low' %}selected{% endif %}>Low (1-3 stars)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="service_type" class="form-label">Service Type</label>
+                        <select class="form-select" id="service_type" name="service_type">
+                            <option value="">All Services</option>
+                            {% for service in service_types %}
+                            <option value="{{ service }}" {% if current_filters.service_type == service %}selected{% endif %}>{{ service }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="location" class="form-label">Location</label>
+                        <select class="form-select" id="location" name="location">
+                            <option value="">All Locations</option>
+                            {% for location in locations %}
+                            <option value="{{ location }}" {% if current_filters.location == location %}selected{% endif %}>{{ location }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>Apply Filters
+                    </button>
+                    <a href="{{ url_for('customer_segments') }}" class="btn btn-outline-secondary">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5>Segment Results ({{ customers|length }} customers)</h5>
+            {% if customers %}
+            <button class="btn btn-success btn-sm" onclick="sendCampaign()">
+                <i class="fas fa-envelope me-2"></i>Send Campaign
+            </button>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            {% if customers %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="select-all"></th>
+                            <th>Customer</th>
+                            <th>Services</th>
+                            <th>Avg Rating</th>
+                            <th>Last Service</th>
+                            <th>Contact</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for customer in customers %}
+                        <tr>
+                            <td><input type="checkbox" class="customer-checkbox" value="{{ customer.id }}"></td>
+                            <td>
+                                <strong>{{ customer.name }}</strong>
+                                {% if customer.service_type %}
+                                <br><small class="text-muted">{{ customer.service_type }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ customer.total_services or 1 }}</td>
+                            <td>
+                                {% if customer.average_rating %}
+                                <span class="badge {% if customer.average_rating >= 4 %}bg-success{% elif customer.average_rating >= 3 %}bg-warning{% else %}bg-danger{% endif %}">
+                                    {{ "%.1f"|format(customer.average_rating) }}★
+                                </span>
+                                {% else %}
+                                <span class="text-muted">No rating</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if customer.appointment_date %}
+                                {{ customer.appointment_date.strftime('%b %d, %Y') }}
+                                {% else %}
+                                <span class="text-muted">Not set</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ customer.email }}</small>
+                                {% if customer.phone %}
+                                <br><small class="text-muted">{{ customer.phone }}</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5>No customers match your filters</h5>
+                <p class="text-muted">Try adjusting your filters or add more customers.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Select all checkbox functionality
+document.getElementById('select-all').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.customer-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+});
+
+function sendCampaign() {
+    const selectedCustomers = Array.from(document.querySelectorAll('.customer-checkbox:checked'))
+                                  .map(cb => cb.value);
+    
+    if (selectedCustomers.length === 0) {
+        alert('Please select at least one customer.');
+        return;
+    }
+    
+    // In a real implementation, this would open a campaign composer
+    alert(`Campaign feature coming soon! Selected ${selectedCustomers.length} customers.`);
+}
+</script>
+{% endblock %}

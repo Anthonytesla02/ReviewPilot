@@ -13,3 +13,10 @@ flask
 flask-sqlalchemy
 gunicorn
 psycopg2-binary
+pydub
+python-dateutil
+schedule
+SpeechRecognition
+mistralai
+reportlab
+requests

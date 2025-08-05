@@ -54,6 +54,23 @@
                             <i class="fas fa-chart-bar me-1"></i>Analytics
                         </a>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="automationDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-robot me-1"></i>AI Automation
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('automation_settings') }}">
+                                <i class="fas fa-cog me-2"></i>Settings
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('customer_segments') }}">
+                                <i class="fas fa-users me-2"></i>Customer Segments
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('generate_report', report_type='weekly') }}">
+                                <i class="fas fa-file-pdf me-2"></i>Generate Report
+                            </a></li>
+                        </ul>
+                    </li>
                 </ul>
                 
                 <ul class="navbar-nav">
