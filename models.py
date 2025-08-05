@@ -12,7 +12,7 @@ class User(UserMixin, db.Model):
     google_business_url = db.Column(db.Text)
     gmail_credentials = db.Column(db.Text)  # JSON string for Gmail API credentials
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    active = db.Column(db.Boolean, default=True)
+    is_active = db.Column(db.Boolean, default=True)
     
     # Relationships
     templates = db.relationship('ReviewTemplate', backref='user', lazy=True, cascade='all, delete-orphan')
@@ -155,8 +155,8 @@ class Referral(db.Model):
     reward_sent = db.Column(db.Boolean, default=False)
     
     # Relationships with explicit foreign keys to avoid ambiguity
-    referrer = db.relationship('Customer', foreign_keys=[customer_id])
-    referred = db.relationship('Customer', foreign_keys=[referred_customer_id])
+    referrer = db.relationship('Customer', foreign_keys=[customer_id], overlaps="referrer_customer,sent_referrals")
+    referred = db.relationship('Customer', foreign_keys=[referred_customer_id], overlaps="received_referrals,referred_customer")
     
     def __repr__(self):
         return f'<Referral {self.referral_token}>'
