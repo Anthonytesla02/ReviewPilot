@@ -1,3 +1,4 @@
+import os
 import uuid
 import logging
 from datetime import datetime
@@ -11,7 +12,11 @@ from forms import (LoginForm, RegistrationForm, ReviewTemplateForm, CustomerForm
 from gmail_service import send_review_request_email, send_admin_notification
 from utils import generate_review_link
 from ai_service import mistral_service
-from automation_service import AutomationService
+# Import conditionally to prevent scheduler from starting in serverless environments
+if not os.environ.get('VERCEL') and not os.environ.get('VERCEL_ENV'):
+    from automation_service import AutomationService
+else:
+    AutomationService = None
 from voice_service import voice_service
 
 logger = logging.getLogger(__name__)

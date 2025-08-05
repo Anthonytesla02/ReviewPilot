@@ -1,9 +1,19 @@
 import os
 import uuid
 import logging
-import speech_recognition as sr
-from pydub import AudioSegment
 from werkzeug.utils import secure_filename
+
+# Only import these heavy dependencies if not in Vercel environment
+if not os.environ.get('VERCEL') and not os.environ.get('VERCEL_ENV'):
+    try:
+        import speech_recognition as sr
+        from pydub import AudioSegment
+    except ImportError:
+        sr = None
+        AudioSegment = None
+else:
+    sr = None
+    AudioSegment = None
 
 logger = logging.getLogger(__name__)
 
@@ -14,11 +24,12 @@ class VoiceService:
         self.upload_folder = "voice_recordings"
         self.allowed_extensions = {'wav', 'mp3', 'mp4', 'm4a', 'ogg', 'webm'}
         
-        # Create upload directory
-        os.makedirs(self.upload_folder, exist_ok=True)
+        # Create upload directory if not in serverless environment
+        if not os.environ.get('VERCEL') and not os.environ.get('VERCEL_ENV'):
+            os.makedirs(self.upload_folder, exist_ok=True)
         
         # Initialize speech recognizer
-        self.recognizer = sr.Recognizer()
+        self.recognizer = sr.Recognizer() if sr else None
     
     def allowed_file(self, filename: str) -> bool:
         """Check if file extension is allowed"""
@@ -47,6 +58,10 @@ class VoiceService:
     
     def convert_to_wav(self, input_path: str) -> str:
         """Convert audio file to WAV format for speech recognition"""
+        if not AudioSegment:
+            logger.error("AudioSegment not available in serverless environment")
+            return None
+        
         try:
             # Load audio file
             audio = AudioSegment.from_file(input_path)
@@ -68,6 +83,10 @@ class VoiceService:
     
     def transcribe_audio(self, file_path: str) -> str:
         """Transcribe audio file to text using speech recognition"""
+        if not self.recognizer or not sr:
+            logger.error("Speech recognition not available in serverless environment")
+            return None
+        
         try:
             # Convert to WAV if needed
             wav_path = self.convert_to_wav(file_path)
@@ -97,6 +116,10 @@ class VoiceService:
     
     def get_audio_duration(self, file_path: str) -> float:
         """Get duration of audio file in seconds"""
+        if not AudioSegment:
+            logger.error("AudioSegment not available in serverless environment")
+            return 0.0
+        
         try:
             audio = AudioSegment.from_file(file_path)
             return len(audio) / 1000.0  # Convert milliseconds to seconds
@@ -106,6 +129,10 @@ class VoiceService:
     
     def validate_audio_file(self, file_path: str) -> dict:
         """Validate audio file and return metadata"""
+        if not AudioSegment:
+            logger.error("AudioSegment not available in serverless environment")
+            return {'valid': False, 'error': 'Audio processing not available'}
+        
         try:
             audio = AudioSegment.from_file(file_path)
             

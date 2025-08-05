@@ -343,6 +343,8 @@ def start_automation_scheduler():
     scheduler_thread.start()
     logger.info("Automation scheduler started")
 
-# Initialize scheduler on import
-if os.environ.get('FLASK_ENV') != 'testing':
+# Initialize scheduler on import (but not in Vercel serverless environment)
+if (os.environ.get('FLASK_ENV') != 'testing' and 
+    not os.environ.get('VERCEL') and 
+    not os.environ.get('VERCEL_ENV')):
     start_automation_scheduler()
