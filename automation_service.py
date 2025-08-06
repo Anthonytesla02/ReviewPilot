@@ -331,12 +331,15 @@ Best regards,
 def start_automation_scheduler():
     """Start the background scheduler for automation tasks"""
     def run_scheduler():
-        schedule.every(10).minutes.do(AutomationService.process_pending_follow_ups)
-        schedule.every().day.at("09:00").do(AutomationService.generate_and_send_reports)
-        
-        while True:
-            schedule.run_pending()
-            time.sleep(60)
+        from app import app
+        with app.app_context():
+            schedule.every(10).minutes.do(lambda: AutomationService.process_pending_follow_ups())
+            schedule.every().day.at("09:00").do(lambda: AutomationService.generate_and_send_reports())
+            
+            while True:
+                with app.app_context():
+                    schedule.run_pending()
+                time.sleep(60)
     
     # Start scheduler in background thread
     scheduler_thread = Thread(target=run_scheduler, daemon=True)
